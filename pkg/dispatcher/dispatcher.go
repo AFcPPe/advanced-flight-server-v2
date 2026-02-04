@@ -3,6 +3,7 @@ package dispatcher
 import (
 	"errors"
 
+	"advanced-flight-server/pkg/errs"
 	"advanced-flight-server/pkg/handler"
 	"advanced-flight-server/pkg/logger"
 	"advanced-flight-server/pkg/protocol"
@@ -12,9 +13,6 @@ import (
 	"github.com/panjf2000/gnet/v2"
 	"go.uber.org/zap"
 )
-
-// ErrNotAuthenticated 首包不是$ID，需要断开连接
-var ErrNotAuthenticated = errors.New("first packet must be $ID")
 
 // Dispatch 根据包类型分发到对应的处理函数
 func Dispatch(conn gnet.Conn, pkt *protocol.Packet) error {
@@ -36,7 +34,7 @@ func Dispatch(conn gnet.Conn, pkt *protocol.Packet) error {
 				zap.String("remote", conn.RemoteAddr().String()),
 				zap.String("type", pkt.GetTypeName()),
 			)
-			return ErrNotAuthenticated
+			return errs.ErrNotAuthenticated
 		}
 	}
 

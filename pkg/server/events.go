@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"advanced-flight-server/pkg/dispatcher"
+	"advanced-flight-server/pkg/errs"
 	"advanced-flight-server/pkg/logger"
 	"advanced-flight-server/pkg/protocol"
 	"advanced-flight-server/pkg/protocol/pdu"
@@ -104,7 +105,7 @@ func (s *FlightServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 				zap.String("type", packet.GetTypeName()),
 			)
 			// 如果首包不是$ID，断开连接
-			if err == dispatcher.ErrNotAuthenticated {
+			if err == errs.ErrNotAuthenticated {
 				return gnet.Close
 			}
 		}
