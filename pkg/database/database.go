@@ -110,18 +110,9 @@ func Get(name string) (*gorm.DB, error) {
 	return db, nil
 }
 
-// MustGet 获取指定名称的数据库实例，不存在则panic
-func MustGet(name string) *gorm.DB {
-	db, err := Get(name)
-	if err != nil {
-		panic(err)
-	}
-	return db
-}
-
 // Account 获取账户数据库实例的快捷方法
-func Account() *gorm.DB {
-	return MustGet(DBAccount)
+func Account() (*gorm.DB, error) {
+	return Get(DBAccount)
 }
 
 // Close 关闭指定数据库连接

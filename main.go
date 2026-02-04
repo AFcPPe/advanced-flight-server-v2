@@ -6,6 +6,7 @@ import (
 	"advanced-flight-server/pkg/logger"
 	"advanced-flight-server/pkg/server"
 	"advanced-flight-server/pkg/service"
+	"os"
 
 	"go.uber.org/zap"
 )
@@ -59,6 +60,6 @@ func main() {
 
 	if err := srv.Run(); err != nil {
 		logger.Error("server error", zap.Error(err))
-		panic(err)
+		os.Exit(1)
 	}
 }

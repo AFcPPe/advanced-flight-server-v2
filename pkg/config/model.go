@@ -30,6 +30,7 @@ type LoggerConfig struct {
 type ServerConfig struct {
 	Host string `mapstructure:"host"`
 	Port int    `mapstructure:"port"`
+	Motd string `mapstructure:"motd"` // 登录成功后发送的欢迎消息
 }
 
 // DatabaseAccountConfig 数据库账户配置
@@ -105,6 +106,7 @@ func DefaultConfig() *Config {
 		Server: ServerConfig{
 			Host: "0.0.0.0",
 			Port: 6809,
+			Motd: "Welcome to Advanced Flight Server!",
 		},
 		DatabaseAccounts: map[string]DatabaseAccountConfig{
 			"account": {

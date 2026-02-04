@@ -1,29 +1,37 @@
 package entity
 
+import "time"
+
 // User 用户实体
 type User struct {
-	BaseModel
-	CID          string `gorm:"column:cid;type:varchar(32);uniqueIndex;not null" json:"cid"`
-	Password     string `gorm:"column:password;type:varchar(255);not null" json:"-"`
-	Callsign     string `gorm:"column:callsign;type:varchar(32)" json:"callsign"`
-	RealName     string `gorm:"column:real_name;type:varchar(100)" json:"real_name"`
-	Email        string `gorm:"column:email;type:varchar(255);uniqueIndex" json:"email"`
-	Rating       int    `gorm:"column:rating;default:1" json:"rating"`
-	PilotRating  int    `gorm:"column:pilot_rating;default:0" json:"pilot_rating"`
-	Status       int8   `gorm:"column:status;default:1;index" json:"status"` // 1: active, 0: inactive, -1: banned
+	ID                      int        `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	Username                string     `gorm:"column:username;type:varchar(12);primaryKey;not null" json:"username"`
+	Password                string     `gorm:"column:password;type:varchar(255);not null" json:"-"`
+	Email                   string     `gorm:"column:email;type:varchar(255);not null" json:"email"`
+	Level                   string     `gorm:"column:level;type:varchar(10);default:'1';not null" json:"level"`
+	TempLevel               *int       `gorm:"column:temp_level" json:"temp_level"`
+	IsPassExam              *int       `gorm:"column:is_pass_exam" json:"is_pass_exam"`
+	Avatar                  *string    `gorm:"column:avatar;type:varchar(255)" json:"avatar"`
+	Introduce               *string    `gorm:"column:introduce;type:varchar(255)" json:"introduce"`
+	RealName                *string    `gorm:"column:real_name;type:varchar(255)" json:"real_name"`
+	Authorized              *string    `gorm:"column:authorized;type:varchar(255)" json:"authorized"`
+	AuthoInfo               *string    `gorm:"column:authoinfo;type:varchar(255)" json:"authoinfo"`
+	AuthorizeType           *string    `gorm:"column:authorizetype;type:varchar(255)" json:"authorizetype"`
+	SubAuthoInfo            *string    `gorm:"column:subauthoinfo;type:varchar(255)" json:"subauthoinfo"`
+	PilotTime               *int64     `gorm:"column:pilottime" json:"pilottime"`
+	AtcTime                 *int64     `gorm:"column:atctime" json:"atctime"`
+	LastFlight              *string    `gorm:"column:lastflight;type:varchar(255)" json:"lastflight"`
+	LastAtc                 *string    `gorm:"column:lastatc;type:varchar(255)" json:"lastatc"`
+	Markup                  *string    `gorm:"column:markup;type:varchar(255)" json:"markup"`
+	Timeout                 *time.Time `gorm:"column:timeout" json:"timeout"`
+	Testable                *bool      `gorm:"column:testable" json:"testable"`
+	IsBind                  *int       `gorm:"column:isbind" json:"isbind"`
+	IsVerified              *int       `gorm:"column:isVerified" json:"is_verified"`
+	AllowedNotify           *bool      `gorm:"column:allowed_notify" json:"allowed_notify"`
+	InControllersFlightTime *int64     `gorm:"column:in_controllers_flight_time" json:"in_controllers_flight_time"`
 }
 
 // TableName 指定表名
 func (User) TableName() string {
-	return "users"
-}
-
-// IsActive 检查用户是否激活
-func (u *User) IsActive() bool {
-	return u.Status == 1
-}
-
-// IsBanned 检查用户是否被禁用
-func (u *User) IsBanned() bool {
-	return u.Status == -1
+	return "user"
 }
