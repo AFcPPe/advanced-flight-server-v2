@@ -104,7 +104,7 @@ func DefaultConfig() *Config {
 		},
 		Server: ServerConfig{
 			Host: "0.0.0.0",
-			Port: 8080,
+			Port: 6809,
 		},
 		DatabaseAccounts: map[string]DatabaseAccountConfig{
 			"account": {

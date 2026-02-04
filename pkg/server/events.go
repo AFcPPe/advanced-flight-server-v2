@@ -6,6 +6,7 @@ import (
 	"advanced-flight-server/pkg/dispatcher"
 	"advanced-flight-server/pkg/logger"
 	"advanced-flight-server/pkg/protocol"
+	"advanced-flight-server/pkg/protocol/pdu"
 
 	"github.com/panjf2000/gnet/v2"
 	"go.uber.org/zap"
@@ -30,7 +31,10 @@ func (s *FlightServer) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 		zap.String("remote", c.RemoteAddr().String()),
 		zap.Int("total_connections", s.sessionMgr.Count()),
 	)
-	return nil, gnet.None
+
+	// 发送ServerChallenge包
+	challenge := pdu.NewServerChallenge()
+	return pdu.Serialize(challenge), gnet.None
 }
 
 // OnClose 连接关闭时回调
@@ -60,9 +64,34 @@ func (s *FlightServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 		return gnet.None
 	}
 
-	// 按行分割处理（FSD协议通常以\r\n结尾）
-	lines := bytes.Split(data, []byte("\r\n"))
-	for _, line := range lines {
+	// 获取会话
+	session := s.sessionMgr.GetSessionByConn(c)
+	if session == nil {
+		logger.Error("session not found for connection", zap.String("remote", c.RemoteAddr().String()))
+		return gnet.Close
+	}
+
+	// 追加数据到缓存，处理粘包
+	if !session.AppendBuffer(data) {
+		logger.Warn("buffer overflow, discarded",
+			zap.String("remote", c.RemoteAddr().String()),
+			zap.String("callsign", session.Callsign),
+		)
+		return gnet.None
+	}
+
+	// 按\r\n分割处理
+	for {
+		idx := bytes.Index(session.Buffer, []byte("\r\n"))
+		if idx == -1 {
+			// 没有完整的包，等待更多数据
+			break
+		}
+
+		// 提取一个完整的包
+		line := session.Buffer[:idx]
+		session.Buffer = session.Buffer[idx+2:]
+
 		if len(line) == 0 {
 			continue
 		}
@@ -74,6 +103,10 @@ func (s *FlightServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 				zap.Error(err),
 				zap.String("type", packet.GetTypeName()),
 			)
+			// 如果首包不是$ID，断开连接
+			if err == dispatcher.ErrNotAuthenticated {
+				return gnet.Close
+			}
 		}
 	}
 

@@ -1,14 +1,20 @@
 package dispatcher
 
 import (
+	"errors"
+
 	"advanced-flight-server/pkg/handler"
 	"advanced-flight-server/pkg/logger"
 	"advanced-flight-server/pkg/protocol"
 	"advanced-flight-server/pkg/protocol/pdu"
+	"advanced-flight-server/pkg/session"
 
 	"github.com/panjf2000/gnet/v2"
 	"go.uber.org/zap"
 )
+
+// ErrNotAuthenticated 首包不是$ID，需要断开连接
+var ErrNotAuthenticated = errors.New("first packet must be $ID")
 
 // Dispatch 根据包类型分发到对应的处理函数
 func Dispatch(conn gnet.Conn, pkt *protocol.Packet) error {
@@ -16,6 +22,23 @@ func Dispatch(conn gnet.Conn, pkt *protocol.Packet) error {
 		zap.String("type", pkt.GetTypeName()),
 		zap.String("remote", conn.RemoteAddr().String()),
 	)
+
+	// 获取会话，检查是否已认证
+	sess := session.GetManager().GetSessionByConn(conn)
+	if sess == nil {
+		return errors.New("session not found")
+	}
+
+	// 如果未认证，首包必须是$ID
+	if !sess.Authenticated {
+		if pkt.Type != protocol.PacketTypeDollar || pkt.SubType != "ID" {
+			logger.Warn("first packet is not $ID, closing connection",
+				zap.String("remote", conn.RemoteAddr().String()),
+				zap.String("type", pkt.GetTypeName()),
+			)
+			return ErrNotAuthenticated
+		}
+	}
 
 	switch pkt.Type {
 	case protocol.PacketTypeATCPosition:

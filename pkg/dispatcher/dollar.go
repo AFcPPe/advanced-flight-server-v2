@@ -1,6 +1,7 @@
 package dispatcher
 
 import (
+	"advanced-flight-server/pkg/handler"
 	"advanced-flight-server/pkg/logger"
 	"advanced-flight-server/pkg/protocol"
 
@@ -11,6 +12,8 @@ import (
 // DispatchDollar 分发 $ 开头的包
 func DispatchDollar(conn gnet.Conn, pkt *protocol.Packet) error {
 	switch pkt.SubType {
+	case "ID":
+		return handler.HandleClientIdentification(conn, pkt)
 	// TODO: 根据子类型分发到具体处理函数
 	// case "CQ":
 	//     return packet.HandleDollarCQ(conn, pkt)
