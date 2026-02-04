@@ -3,6 +3,7 @@ package main
 import (
 	"advanced-flight-server/pkg/config"
 	"advanced-flight-server/pkg/logger"
+	"advanced-flight-server/pkg/server"
 
 	"go.uber.org/zap"
 )
@@ -26,7 +27,7 @@ func main() {
 	})
 	defer logger.Sync()
 
-	// 测试日志输出
+	// 获取配置
 	appCfg := config.GetApp()
 	serverCfg := config.GetServer()
 
@@ -36,7 +37,12 @@ func main() {
 		zap.String("env", appCfg.Env),
 	)
 
-	logger.Infof("server listening on %s:%d", serverCfg.Host, serverCfg.Port)
-	logger.Debug("this is a debug message")
-	logger.Warn("this is a warning message")
+	// 启动 TCP 服务器
+	srv := server.NewFlightServer(serverCfg.Host, serverCfg.Port)
+	logger.Infof("starting TCP server on %s:%d", serverCfg.Host, serverCfg.Port)
+
+	if err := srv.Run(); err != nil {
+		logger.Error("server error", zap.Error(err))
+		panic(err)
+	}
 }

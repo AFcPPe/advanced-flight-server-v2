@@ -27,10 +27,8 @@ type LoggerConfig struct {
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
-	Host         string `mapstructure:"host"`
-	Port         int    `mapstructure:"port"`
-	ReadTimeout  int    `mapstructure:"read_timeout"`  // 读取超时(秒)
-	WriteTimeout int    `mapstructure:"write_timeout"` // 写入超时(秒)
+	Host string `mapstructure:"host"`
+	Port int    `mapstructure:"port"`
 }
 
 // DefaultConfig 返回默认配置
@@ -51,10 +49,8 @@ func DefaultConfig() *Config {
 			Console:    true,
 		},
 		Server: ServerConfig{
-			Host:         "0.0.0.0",
-			Port:         8080,
-			ReadTimeout:  30,
-			WriteTimeout: 30,
+			Host: "0.0.0.0",
+			Port: 8080,
 		},
 	}
 }

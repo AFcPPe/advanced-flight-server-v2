@@ -75,8 +75,6 @@ func setDefaults() {
 	// Server
 	viper.SetDefault("server.host", defaults.Server.Host)
 	viper.SetDefault("server.port", defaults.Server.Port)
-	viper.SetDefault("server.read_timeout", defaults.Server.ReadTimeout)
-	viper.SetDefault("server.write_timeout", defaults.Server.WriteTimeout)
 }
 
 // generateDefaultConfig 使用 viper 生成默认配置文件
