@@ -1,0 +1,101 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Dependency directories
+vendor/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Log files
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+
+# Build output
+bin/
+dist/
+build/
+out/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Debug files
+debug
+*.dSYM/
+
+# Configuration files with sensitive data
+config.local.yaml
+config.local.yml
+config.yaml
+config.yml
+*.local.yaml
+*.local.yml
+secrets.yaml
+secrets.yml
+
+# Coverage reports
+coverage/
+coverage.html
+coverage.txt
+
+# Profiling
+*.prof
+*.pprof
+
+# Air live reload
+tmp/
+
+# Node modules (if any frontend)
+node_modules/
+
+# Python (if any scripts)
+__pycache__/
+*.py[cod]
+.Python
+venv/
+.venv/
