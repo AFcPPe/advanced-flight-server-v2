@@ -2,8 +2,10 @@ package main
 
 import (
 	"advanced-flight-server/pkg/config"
+	"advanced-flight-server/pkg/database"
 	"advanced-flight-server/pkg/logger"
 	"advanced-flight-server/pkg/server"
+	"advanced-flight-server/pkg/service"
 
 	"go.uber.org/zap"
 )
@@ -36,6 +38,20 @@ func main() {
 		zap.String("version", appCfg.Version),
 		zap.String("env", appCfg.Env),
 	)
+
+	// 初始化数据库
+	dbAccounts := config.Get().DatabaseAccounts
+	for name, cfg := range dbAccounts {
+		cfgCopy := cfg // 避免闭包问题
+		if err := database.Register(name, &cfgCopy); err != nil {
+			logger.Error("failed to register database", zap.String("name", name), zap.Error(err))
+			panic(err)
+		}
+	}
+	defer database.CloseAll()
+
+	// 初始化服务
+	service.Init()
 
 	// 启动 TCP 服务器
 	srv := server.NewFlightServer(serverCfg.Host, serverCfg.Port)

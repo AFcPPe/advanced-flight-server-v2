@@ -1,9 +1,10 @@
 package dispatcher
 
 import (
+	"advanced-flight-server/pkg/handler"
 	"advanced-flight-server/pkg/logger"
-	"advanced-flight-server/pkg/packet"
 	"advanced-flight-server/pkg/protocol"
+	"advanced-flight-server/pkg/protocol/pdu"
 
 	"github.com/panjf2000/gnet/v2"
 	"go.uber.org/zap"
@@ -18,9 +19,9 @@ func Dispatch(conn gnet.Conn, pkt *protocol.Packet) error {
 
 	switch pkt.Type {
 	case protocol.PacketTypeATCPosition:
-		return packet.HandleATCPosition(conn, pkt)
+		return dispatchATCPosition(conn, pkt)
 	case protocol.PacketTypePilotPosition:
-		return packet.HandlePilotPosition(conn, pkt)
+		return dispatchPilotPosition(conn, pkt)
 	case protocol.PacketTypeHash:
 		return DispatchHash(conn, pkt)
 	case protocol.PacketTypeDollar:
@@ -31,4 +32,24 @@ func Dispatch(conn gnet.Conn, pkt *protocol.Packet) error {
 		)
 		return nil
 	}
+}
+
+// dispatchATCPosition 解析并分发ATC位置包
+func dispatchATCPosition(conn gnet.Conn, pkt *protocol.Packet) error {
+	p, err := pdu.ATCPositionFromRaw(pkt.RawData)
+	if err != nil {
+		logger.Error("failed to parse ATCPosition", zap.Error(err))
+		return err
+	}
+	return handler.HandleATCPosition(conn, p)
+}
+
+// dispatchPilotPosition 解析并分发飞行员位置包
+func dispatchPilotPosition(conn gnet.Conn, pkt *protocol.Packet) error {
+	p, err := pdu.PilotPositionFromRaw(pkt.RawData)
+	if err != nil {
+		logger.Error("failed to parse PilotPosition", zap.Error(err))
+		return err
+	}
+	return handler.HandlePilotPosition(conn, p)
 }

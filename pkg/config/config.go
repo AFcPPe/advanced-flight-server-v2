@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"os"
+	"reflect"
+	"strings"
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
@@ -57,24 +59,76 @@ func Init(configPath string) error {
 // setDefaults 设置默认值
 func setDefaults() {
 	defaults := DefaultConfig()
+	// 使用反射自动将结构体转换为viper默认值
+	if err := viper.MergeConfigMap(structToMap(defaults)); err != nil {
+		// 静默处理，使用空配置
+		return
+	}
+}
 
-	// App
-	viper.SetDefault("app.name", defaults.App.Name)
-	viper.SetDefault("app.version", defaults.App.Version)
-	viper.SetDefault("app.env", defaults.App.Env)
+// structToMap 将结构体递归转换为map[string]interface{}
+func structToMap(obj interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	v := reflect.ValueOf(obj)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return result
+	}
+	t := v.Type()
 
-	// Logger
-	viper.SetDefault("logger.level", defaults.Logger.Level)
-	viper.SetDefault("logger.filename", defaults.Logger.Filename)
-	viper.SetDefault("logger.max_size", defaults.Logger.MaxSize)
-	viper.SetDefault("logger.max_backups", defaults.Logger.MaxBackups)
-	viper.SetDefault("logger.max_age", defaults.Logger.MaxAge)
-	viper.SetDefault("logger.compress", defaults.Logger.Compress)
-	viper.SetDefault("logger.console", defaults.Logger.Console)
+	for i := 0; i < v.NumField(); i++ {
+		field := t.Field(i)
+		value := v.Field(i)
 
-	// Server
-	viper.SetDefault("server.host", defaults.Server.Host)
-	viper.SetDefault("server.port", defaults.Server.Port)
+		// 获取mapstructure tag作为key
+		key := field.Tag.Get("mapstructure")
+		if key == "" {
+			key = strings.ToLower(field.Name)
+		}
+
+		result[key] = convertValue(value)
+	}
+	return result
+}
+
+// convertValue 转换reflect.Value为interface{}
+func convertValue(v reflect.Value) interface{} {
+	switch v.Kind() {
+	case reflect.Struct:
+		return structToMap(v.Interface())
+	case reflect.Map:
+		return mapToInterface(v)
+	case reflect.Slice, reflect.Array:
+		return sliceToInterface(v)
+	case reflect.Ptr:
+		if v.IsNil() {
+			return nil
+		}
+		return convertValue(v.Elem())
+	default:
+		return v.Interface()
+	}
+}
+
+// mapToInterface 将map转换为map[string]interface{}
+func mapToInterface(v reflect.Value) map[string]interface{} {
+	result := make(map[string]interface{})
+	for _, key := range v.MapKeys() {
+		keyStr := fmt.Sprintf("%v", key.Interface())
+		result[keyStr] = convertValue(v.MapIndex(key))
+	}
+	return result
+}
+
+// sliceToInterface 将slice转换为[]interface{}
+func sliceToInterface(v reflect.Value) []interface{} {
+	result := make([]interface{}, v.Len())
+	for i := 0; i < v.Len(); i++ {
+		result[i] = convertValue(v.Index(i))
+	}
+	return result
 }
 
 // generateDefaultConfig 使用 viper 生成默认配置文件

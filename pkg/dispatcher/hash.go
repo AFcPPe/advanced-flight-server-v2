@@ -1,8 +1,12 @@
 package dispatcher
 
 import (
+	"strings"
+
+	"advanced-flight-server/pkg/handler"
 	"advanced-flight-server/pkg/logger"
 	"advanced-flight-server/pkg/protocol"
+	"advanced-flight-server/pkg/protocol/pdu"
 
 	"github.com/panjf2000/gnet/v2"
 	"go.uber.org/zap"
@@ -11,15 +15,48 @@ import (
 // DispatchHash 分发 # 开头的包
 func DispatchHash(conn gnet.Conn, pkt *protocol.Packet) error {
 	switch pkt.SubType {
-	// TODO: 根据子类型分发到具体处理函数
-	// case "AP":
-	//     return packet.HandleHashAP(conn, pkt)
-	// case "AA":
-	//     return packet.HandleHashAA(conn, pkt)
+	case "AP":
+		return dispatchAddPilot(conn, pkt)
+	case "AA":
+		return dispatchAddATC(conn, pkt)
 	default:
 		logger.Debug("unhandled hash packet subtype",
 			zap.String("subtype", pkt.SubType),
 		)
 		return nil
 	}
+}
+
+// dispatchAddPilot 解析并分发飞行员登录包
+func dispatchAddPilot(conn gnet.Conn, pkt *protocol.Packet) error {
+	// 去掉 #AP 前缀，按:分割
+	data := string(pkt.RawData)
+	if len(data) > 3 {
+		data = data[3:] // 去掉 "#AP"
+	}
+	tokens := strings.Split(data, ":")
+
+	p, err := pdu.AddPilotFromTokens(tokens)
+	if err != nil {
+		logger.Error("failed to parse AddPilot", zap.Error(err))
+		return err
+	}
+	return handler.HandleAddPilot(conn, p)
+}
+
+// dispatchAddATC 解析并分发管制员登录包
+func dispatchAddATC(conn gnet.Conn, pkt *protocol.Packet) error {
+	// 去掉 #AA 前缀，按:分割
+	data := string(pkt.RawData)
+	if len(data) > 3 {
+		data = data[3:] // 去掉 "#AA"
+	}
+	tokens := strings.Split(data, ":")
+
+	p, err := pdu.AddATCFromTokens(tokens)
+	if err != nil {
+		logger.Error("failed to parse AddATC", zap.Error(err))
+		return err
+	}
+	return handler.HandleAddATC(conn, p)
 }
