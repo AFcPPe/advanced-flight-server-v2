@@ -12,7 +12,7 @@ import (
 func HandlePilotPosition(conn gnet.Conn, p *pdu.PilotPosition) error {
 	logger.Debug("handling PilotPosition",
 		zap.String("callsign", p.Callsign),
-		zap.String("transponder", p.Transponder),
+		zap.Int("squawk", p.SquawkCode),
 		zap.Float64("lat", p.Latitude),
 		zap.Float64("lon", p.Longitude),
 		zap.Int("altitude", p.TrueAltitude),

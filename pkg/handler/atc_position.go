@@ -12,7 +12,7 @@ import (
 func HandleATCPosition(conn gnet.Conn, p *pdu.ATCPosition) error {
 	logger.Debug("handling ATCPosition",
 		zap.String("callsign", p.Callsign),
-		zap.Int("frequency", p.Frequency),
+		zap.Strings("frequencies", p.Frequencies),
 		zap.Float64("lat", p.Latitude),
 		zap.Float64("lon", p.Longitude),
 		zap.String("remote", conn.RemoteAddr().String()),

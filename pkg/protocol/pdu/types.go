@@ -134,3 +134,37 @@ func (ne NetworkError) String() string {
 		return ""
 	}
 }
+
+// NetworkFacility ATC设施类型
+type NetworkFacility int
+
+const (
+	FacilityOBS NetworkFacility = iota // Observer
+	FacilityFSS                        // Flight Service Station
+	FacilityDEL                        // Delivery
+	FacilityGND                        // Ground
+	FacilityTWR                        // Tower
+	FacilityAPP                        // Approach
+	FacilityCTR                        // Center
+)
+
+func (nf NetworkFacility) String() string {
+	switch nf {
+	case FacilityOBS:
+		return "OBS"
+	case FacilityFSS:
+		return "FSS"
+	case FacilityDEL:
+		return "DEL"
+	case FacilityGND:
+		return "GND"
+	case FacilityTWR:
+		return "TWR"
+	case FacilityAPP:
+		return "APP"
+	case FacilityCTR:
+		return "CTR"
+	default:
+		return ""
+	}
+}

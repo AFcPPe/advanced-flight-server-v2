@@ -8,36 +8,46 @@ import (
 
 // ATCPosition ATC位置PDU (% 开头)
 type ATCPosition struct {
-	Callsign       string
-	Frequency      int
-	Facility       int
-	VisualRange    int
-	Rating         NetworkRating
-	Latitude       float64
-	Longitude      float64
-	AltitudeAGL    int
+	Callsign        string
+	Frequencies     []string
+	Facility        NetworkFacility
+	VisibilityRange int
+	Rating          NetworkRating
+	Latitude        float64
+	Longitude       float64
+}
+
+// NewATCPosition 创建ATCPosition
+func NewATCPosition(callsign string, frequencies []string, facility NetworkFacility, visRange int, rating NetworkRating, lat, lon float64) *ATCPosition {
+	return &ATCPosition{
+		Callsign:        callsign,
+		Frequencies:     frequencies,
+		Facility:        facility,
+		VisibilityRange: visRange,
+		Rating:          rating,
+		Latitude:        lat,
+		Longitude:       lon,
+	}
 }
 
 // ATCPositionFromTokens 从tokens解析ATCPosition
-// 格式: Callsign:Frequency:Facility:VisualRange:Rating:Lat:Lon:AltitudeAGL
+// 格式: Callsign:Frequencies:Facility:VisRange:Rating:Lat:Lon
+// Frequencies 多个频率用 & 分隔
 func ATCPositionFromTokens(tokens []string) (*ATCPosition, error) {
-	if len(tokens) < 8 {
-		return nil, fmt.Errorf("ATCPosition: invalid token count, got %d, need 8", len(tokens))
+	if len(tokens) < 7 {
+		return nil, fmt.Errorf("ATCPosition: invalid token count, got %d, need 7", len(tokens))
 	}
 
-	frequency, err := strconv.Atoi(tokens[1])
-	if err != nil {
-		return nil, fmt.Errorf("ATCPosition: invalid frequency: %w", err)
-	}
+	frequencies := strings.Split(tokens[1], "&")
 
 	facility, err := strconv.Atoi(tokens[2])
 	if err != nil {
 		return nil, fmt.Errorf("ATCPosition: invalid facility: %w", err)
 	}
 
-	visualRange, err := strconv.Atoi(tokens[3])
+	visRange, err := strconv.Atoi(tokens[3])
 	if err != nil {
-		return nil, fmt.Errorf("ATCPosition: invalid visual range: %w", err)
+		return nil, fmt.Errorf("ATCPosition: invalid visibility range: %w", err)
 	}
 
 	rating, err := strconv.Atoi(tokens[4])
@@ -55,26 +65,19 @@ func ATCPositionFromTokens(tokens []string) (*ATCPosition, error) {
 		return nil, fmt.Errorf("ATCPosition: invalid longitude: %w", err)
 	}
 
-	alt, err := strconv.Atoi(tokens[7])
-	if err != nil {
-		return nil, fmt.Errorf("ATCPosition: invalid altitude: %w", err)
-	}
-
-	return &ATCPosition{
-		Callsign:    tokens[0],
-		Frequency:   frequency,
-		Facility:    facility,
-		VisualRange: visualRange,
-		Rating:      NetworkRating(rating),
-		Latitude:    lat,
-		Longitude:   lon,
-		AltitudeAGL: alt,
-	}, nil
+	return NewATCPosition(
+		tokens[0],
+		frequencies,
+		NetworkFacility(facility),
+		visRange,
+		NetworkRating(rating),
+		lat,
+		lon,
+	), nil
 }
 
 // ATCPositionFromRaw 从原始数据解析 (去掉%前缀后的数据)
 func ATCPositionFromRaw(data []byte) (*ATCPosition, error) {
-	// 去掉%前缀
 	s := string(data)
 	if len(s) > 0 && s[0] == '%' {
 		s = s[1:]
@@ -88,14 +91,15 @@ func (p *ATCPosition) GetHeader() string {
 }
 
 func (p *ATCPosition) ToTokens() []string {
+	freq := strings.Join(p.Frequencies, "&")
 	return []string{
 		p.Callsign,
-		strconv.Itoa(p.Frequency),
-		strconv.Itoa(p.Facility),
-		strconv.Itoa(p.VisualRange),
+		freq,
+		strconv.Itoa(int(p.Facility)),
+		strconv.Itoa(p.VisibilityRange),
 		strconv.Itoa(int(p.Rating)),
-		strconv.FormatFloat(p.Latitude, 'f', 6, 64),
-		strconv.FormatFloat(p.Longitude, 'f', 6, 64),
-		strconv.Itoa(p.AltitudeAGL),
+		strconv.FormatFloat(p.Latitude, 'f', -1, 64),
+		strconv.FormatFloat(p.Longitude, 'f', -1, 64),
+		"0",
 	}
 }
