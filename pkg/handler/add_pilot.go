@@ -72,6 +72,9 @@ func HandleAddPilot(conn gnet.Conn, p *pdu.AddPilot) error {
 		return session.SendErrorAndClose(conn, p.Callsign, pdu.NetworkErrorInvalidLogon, "session not found")
 	}
 
+	// 设置连接类型为Pilot
+	mgr.SetConnType(conn, session.ConnectionTypePilot)
+
 	// 发送 motd
 	if motd := config.GetServer().Motd; motd != "" {
 		for _, line := range strings.Split(motd, "\n") {

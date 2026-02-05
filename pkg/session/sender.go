@@ -3,6 +3,8 @@ package session
 import (
 	"strings"
 
+	"advanced-flight-server/pkg/util"
+
 	"github.com/panjf2000/gnet/v2"
 )
 
@@ -23,57 +25,33 @@ func Send(conn gnet.Conn, p Sendable) error {
 	return conn.AsyncWrite(Serialize(p), nil)
 }
 
-// SendTo 向指定callsign发送PDU（针对性发送）
-func SendTo(callsign string, p Sendable) error {
-	mgr := GetManager()
-	conn := mgr.GetConnByCallsign(callsign)
-	if conn == nil {
-		return nil // 目标不在线，静默忽略
-	}
-	return conn.AsyncWrite(Serialize(p), nil)
-}
-
-// SendToMultiple 向多个callsign发送PDU
-func SendToMultiple(callsigns []string, p Sendable) {
+// BroadcastInRange 向指定连接范围内的所有用户广播PDU
+// 规则：距离小于二者VisibilityRange之和
+func BroadcastInRange(conn gnet.Conn, p Sendable) {
 	data := Serialize(p)
 	mgr := GetManager()
-	for _, callsign := range callsigns {
-		conn := mgr.GetConnByCallsign(callsign)
-		if conn != nil {
-			_ = conn.AsyncWrite(data, nil)
+
+	// 获取发送者的session信息
+	senderSession := mgr.GetSession(conn)
+	if senderSession == nil {
+		return
+	}
+
+	sessions := mgr.GetAllSessions()
+	for _, s := range sessions {
+		if s.Conn == conn {
+			continue // 不发给自己
 		}
-	}
-}
 
-// Broadcast 向所有连接广播PDU（广播性发送）
-func Broadcast(p Sendable) {
-	data := Serialize(p)
-	mgr := GetManager()
-	sessions := mgr.GetAllSessions()
-	for _, s := range sessions {
-		_ = s.Conn.AsyncWrite(data, nil)
-	}
-}
-
-// BroadcastExcept 向除指定连接外的所有连接广播PDU
-func BroadcastExcept(except gnet.Conn, p Sendable) {
-	data := Serialize(p)
-	mgr := GetManager()
-	sessions := mgr.GetAllSessions()
-	for _, s := range sessions {
-		if s.Conn != except {
-			_ = s.Conn.AsyncWrite(data, nil)
+		if !s.IsLoggedIn() {
+			continue
 		}
-	}
-}
 
-// BroadcastExceptCallsign 向除指定callsign外的所有连接广播PDU
-func BroadcastExceptCallsign(exceptCallsign string, p Sendable) {
-	data := Serialize(p)
-	mgr := GetManager()
-	sessions := mgr.GetAllSessions()
-	for _, s := range sessions {
-		if s.Callsign != exceptCallsign {
+		// 计算距离
+		distance := util.DistanceNM(senderSession.Lat, senderSession.Lon, s.Lat, s.Lon)
+
+		// 距离小于二者VisibilityRange之和则发送
+		if distance < float64(senderSession.VisibilityRange+s.VisibilityRange) {
 			_ = s.Conn.AsyncWrite(data, nil)
 		}
 	}

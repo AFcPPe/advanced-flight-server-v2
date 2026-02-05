@@ -71,6 +71,9 @@ func HandleAddATC(conn gnet.Conn, p *pdu.AddATC) error {
 		return session.SendErrorAndClose(conn, p.Callsign, pdu.NetworkErrorInvalidLogon, "session not found")
 	}
 
+	// 设置连接类型为ATC
+	mgr.SetConnType(conn, session.ConnectionTypeATC)
+
 	// 发送 motd
 	if motd := config.GetServer().Motd; motd != "" {
 		for _, line := range strings.Split(motd, "\n") {

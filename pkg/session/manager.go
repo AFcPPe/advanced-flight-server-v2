@@ -105,3 +105,67 @@ func (m *Manager) RemoveConn(conn gnet.Conn) {
 	}
 	delete(m.connToSession, conn)
 }
+
+// SetConnType 设置连接类型
+func (m *Manager) SetConnType(conn gnet.Conn, connType ConnectionType) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if session, exists := m.connToSession[conn]; exists {
+		session.ConnType = connType
+	}
+}
+
+// GetSession 获取连接对应的Session
+func (m *Manager) GetSession(conn gnet.Conn) *Session {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	return m.connToSession[conn]
+}
+
+// GetConnType 获取连接类型
+func (m *Manager) GetConnType(conn gnet.Conn) ConnectionType {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if session, exists := m.connToSession[conn]; exists {
+		return session.ConnType
+	}
+	return ConnectionTypeUnknown
+}
+
+// UpdatePilotPosition 更新Pilot位置信息
+func (m *Manager) UpdatePilotPosition(conn gnet.Conn, lat, lon float64, squawkCode int, squawkingModeC, identing bool, trueAlt, pressureAlt, gs int, pitch, heading, bank float64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if session, exists := m.connToSession[conn]; exists {
+		session.Lat = lat
+		session.Lon = lon
+		session.VisibilityRange = 40 // Pilot固定为40
+		session.SquawkCode = squawkCode
+		session.SquawkingModeC = squawkingModeC
+		session.Identing = identing
+		session.TrueAltitude = trueAlt
+		session.PressureAltitude = pressureAlt
+		session.GroundSpeed = gs
+		session.Pitch = pitch
+		session.Heading = heading
+		session.Bank = bank
+	}
+}
+
+// UpdateATCPosition 更新ATC位置信息
+func (m *Manager) UpdateATCPosition(conn gnet.Conn, lat, lon float64, frequencies []string, facility, visRange int) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if session, exists := m.connToSession[conn]; exists {
+		session.Lat = lat
+		session.Lon = lon
+		session.VisibilityRange = visRange
+		session.Frequencies = frequencies
+		session.Facility = facility
+	}
+}

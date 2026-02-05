@@ -3,6 +3,7 @@ package handler
 import (
 	"advanced-flight-server/pkg/logger"
 	"advanced-flight-server/pkg/protocol/pdu"
+	"advanced-flight-server/pkg/session"
 
 	"github.com/panjf2000/gnet/v2"
 	"go.uber.org/zap"
@@ -18,8 +19,21 @@ func HandleATCPosition(conn gnet.Conn, p *pdu.ATCPosition) error {
 		zap.String("remote", conn.RemoteAddr().String()),
 	)
 
-	// TODO: 更新ATC位置信息
-	// TODO: 广播给相关客户端
+	mgr := session.GetManager()
+
+	// 验证连接类型必须是ATC
+	if mgr.GetConnType(conn) != session.ConnectionTypeATC {
+		logger.Warn("ATCPosition received from non-ATC connection",
+			zap.String("callsign", p.From),
+		)
+		return session.SendErrorAndClose(conn, p.From, pdu.NetworkErrorInvalidControl, "invalid connection type for ATC position")
+	}
+
+	// 更新ATC位置信息
+	mgr.UpdateATCPosition(conn, p.Lat, p.Lon, p.Frequencies, int(p.Facility), p.VisibilityRange)
+
+	// 范围广播原始PDU
+	session.BroadcastInRange(conn, p)
 
 	return nil
 }
