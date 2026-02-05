@@ -56,3 +56,20 @@ func BroadcastInRange(conn gnet.Conn, p Sendable) {
 		}
 	}
 }
+
+// BroadcastToATC 向所有ATC广播PDU
+func BroadcastToATC(p Sendable) {
+	data := Serialize(p)
+	mgr := GetManager()
+
+	sessions := mgr.GetAllSessions()
+	for _, s := range sessions {
+		if !s.IsLoggedIn() {
+			continue
+		}
+
+		if s.ConnType == ConnectionTypeATC {
+			_ = s.Conn.AsyncWrite(data, nil)
+		}
+	}
+}

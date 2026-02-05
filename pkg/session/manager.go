@@ -169,3 +169,23 @@ func (m *Manager) UpdateATCPosition(conn gnet.Conn, lat, lon float64, frequencie
 		session.Facility = facility
 	}
 }
+
+// UpdateFlightPlan 更新Pilot的飞行计划
+func (m *Manager) UpdateFlightPlan(conn gnet.Conn, fp *FlightPlanData) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if session, exists := m.connToSession[conn]; exists {
+		session.FlightPlan = fp
+	}
+}
+
+// SetCid 设置用户CID
+func (m *Manager) SetCid(conn gnet.Conn, cid string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if session, exists := m.connToSession[conn]; exists {
+		session.Cid = cid
+	}
+}

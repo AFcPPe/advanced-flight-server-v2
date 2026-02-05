@@ -30,6 +30,14 @@ func HandlePilotPosition(conn gnet.Conn, p *pdu.PilotPosition) error {
 		return session.SendErrorAndClose(conn, p.From, pdu.NetworkErrorInvalidControl, "invalid connection type for pilot position")
 	}
 
+	// 验证callsign是否匹配
+	if sess := mgr.GetSession(conn); sess == nil || sess.Callsign != p.From {
+		logger.Warn("PilotPosition callsign mismatch",
+			zap.String("pdu_from", p.From),
+		)
+		return session.SendErrorAndClose(conn, p.From, pdu.NetworkErrorInvalidControl, "callsign mismatch")
+	}
+
 	// 更新飞行员位置信息
 	mgr.UpdatePilotPosition(conn, p.Lat, p.Lon, p.SquawkCode, p.SquawkingModeC, p.Identing,
 		p.TrueAltitude, p.PressureAltitude, p.GroundSpeed, p.Pitch, p.Heading, p.Bank)

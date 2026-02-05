@@ -1,6 +1,8 @@
 package session
 
 import (
+	"advanced-flight-server/pkg/protocol/pdu"
+
 	"github.com/panjf2000/gnet/v2"
 )
 
@@ -22,6 +24,7 @@ const (
 type Session struct {
 	Conn          gnet.Conn
 	Callsign      string
+	Cid           string         // 用户CID
 	Buffer        []byte         // 用于处理粘包的缓存
 	Authenticated bool           // 是否已通过$ID验证（首包必须是$ID）
 	ConnType      ConnectionType // 连接类型：Pilot或ATC
@@ -41,6 +44,7 @@ type Session struct {
 	Pitch            float64
 	Heading          float64
 	Bank             float64
+	FlightPlan       *FlightPlanData // 飞行计划
 
 	// ATC特有字段
 	Frequencies []string
@@ -71,4 +75,44 @@ func (s *Session) SetBuffer(data []byte) {
 // IsLoggedIn 判断用户是否已认证且已登录
 func (s *Session) IsLoggedIn() bool {
 	return s.Authenticated && s.Callsign != ""
+}
+
+// FlightPlanData 存储飞行计划数据
+type FlightPlanData struct {
+	FlightRules   pdu.FlightRule
+	Type          string
+	TAS           string
+	Dep           string
+	DepTime       string
+	ActualDepTime string
+	CruiseAlt     string
+	Dest          string
+	EnrouteHour   string
+	EnrouteMin    string
+	FobHour       string
+	FobMin        string
+	AlterDest     string
+	Remark        string
+	Route         string
+}
+
+// NewFlightPlanData 从FlightPlan PDU创建FlightPlanData
+func NewFlightPlanData(fp *pdu.FlightPlan) *FlightPlanData {
+	return &FlightPlanData{
+		FlightRules:   fp.FlightRules,
+		Type:          fp.Type,
+		TAS:           fp.TAS,
+		Dep:           fp.Dep,
+		DepTime:       fp.DepTime,
+		ActualDepTime: fp.ActualDepTime,
+		CruiseAlt:     fp.CruiseAlt,
+		Dest:          fp.Dest,
+		EnrouteHour:   fp.EnrouteHour,
+		EnrouteMin:    fp.EnrouteMin,
+		FobHour:       fp.FobHour,
+		FobMin:        fp.FobMin,
+		AlterDest:     fp.AlterDest,
+		Remark:        fp.Remark,
+		Route:         fp.Route,
+	}
 }

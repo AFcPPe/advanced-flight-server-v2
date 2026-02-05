@@ -29,6 +29,14 @@ func HandleATCPosition(conn gnet.Conn, p *pdu.ATCPosition) error {
 		return session.SendErrorAndClose(conn, p.From, pdu.NetworkErrorInvalidControl, "invalid connection type for ATC position")
 	}
 
+	// 验证callsign是否匹配
+	if sess := mgr.GetSession(conn); sess == nil || sess.Callsign != p.From {
+		logger.Warn("ATCPosition callsign mismatch",
+			zap.String("pdu_from", p.From),
+		)
+		return session.SendErrorAndClose(conn, p.From, pdu.NetworkErrorInvalidControl, "callsign mismatch")
+	}
+
 	// 更新ATC位置信息
 	mgr.UpdateATCPosition(conn, p.Lat, p.Lon, p.Frequencies, int(p.Facility), p.VisibilityRange)
 
