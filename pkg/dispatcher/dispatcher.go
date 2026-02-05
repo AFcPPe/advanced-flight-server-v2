@@ -57,7 +57,7 @@ func Dispatch(conn gnet.Conn, pkt *protocol.Packet) error {
 
 // dispatchATCPosition 解析并分发ATC位置包
 func dispatchATCPosition(conn gnet.Conn, pkt *protocol.Packet) error {
-	p, err := pdu.ATCPositionFromRaw(pkt.RawData)
+	p, err := pdu.ATCPositionFromTokens(pkt.Tokens)
 	if err != nil {
 		logger.Error("failed to parse ATCPosition", zap.Error(err))
 		return err
@@ -67,7 +67,7 @@ func dispatchATCPosition(conn gnet.Conn, pkt *protocol.Packet) error {
 
 // dispatchPilotPosition 解析并分发飞行员位置包
 func dispatchPilotPosition(conn gnet.Conn, pkt *protocol.Packet) error {
-	p, err := pdu.PilotPositionFromRaw(pkt.RawData)
+	p, err := pdu.PilotPositionFromTokens(pkt.Tokens)
 	if err != nil {
 		logger.Error("failed to parse PilotPosition", zap.Error(err))
 		return err

@@ -1,8 +1,6 @@
 package dispatcher
 
 import (
-	"strings"
-
 	"advanced-flight-server/pkg/handler"
 	"advanced-flight-server/pkg/logger"
 	"advanced-flight-server/pkg/protocol"
@@ -29,14 +27,7 @@ func DispatchHash(conn gnet.Conn, pkt *protocol.Packet) error {
 
 // dispatchAddPilot 解析并分发飞行员登录包
 func dispatchAddPilot(conn gnet.Conn, pkt *protocol.Packet) error {
-	// 去掉 #AP 前缀，按:分割
-	data := string(pkt.RawData)
-	if len(data) > 3 {
-		data = data[3:] // 去掉 "#AP"
-	}
-	tokens := strings.Split(data, ":")
-
-	p, err := pdu.AddPilotFromTokens(tokens)
+	p, err := pdu.AddPilotFromTokens(pkt.Tokens)
 	if err != nil {
 		logger.Error("failed to parse AddPilot", zap.Error(err))
 		return err
@@ -46,14 +37,7 @@ func dispatchAddPilot(conn gnet.Conn, pkt *protocol.Packet) error {
 
 // dispatchAddATC 解析并分发管制员登录包
 func dispatchAddATC(conn gnet.Conn, pkt *protocol.Packet) error {
-	// 去掉 #AA 前缀，按:分割
-	data := string(pkt.RawData)
-	if len(data) > 3 {
-		data = data[3:] // 去掉 "#AA"
-	}
-	tokens := strings.Split(data, ":")
-
-	p, err := pdu.AddATCFromTokens(tokens)
+	p, err := pdu.AddATCFromTokens(pkt.Tokens)
 	if err != nil {
 		logger.Error("failed to parse AddATC", zap.Error(err))
 		return err

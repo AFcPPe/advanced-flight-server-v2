@@ -22,9 +22,8 @@ func HandleAddPilot(conn gnet.Conn, p *pdu.AddPilot) error {
 		zap.String("realname", p.RealName),
 		zap.String("password", p.Password),
 		zap.Int("rating", int(p.Rating)),
-		zap.String("rating_str", p.Rating.String()),
 		zap.Int("protocol_version", p.ProtocolVersion),
-		zap.Int("simtype", p.SimType),
+		zap.String("simtype", p.SimType),
 		zap.String("remote", conn.RemoteAddr().String()),
 	)
 
@@ -77,7 +76,7 @@ func HandleAddPilot(conn gnet.Conn, p *pdu.AddPilot) error {
 	if motd := config.GetServer().Motd; motd != "" {
 		for _, line := range strings.Split(motd, "\n") {
 			if line = strings.TrimSpace(line); line != "" {
-				_ = session.Send(conn, pdu.NewServerTextMessage(p.Callsign, line))
+				_ = session.Send(conn, pdu.NewPDUTextMessage("SERVER", p.Callsign, line))
 			}
 		}
 	}

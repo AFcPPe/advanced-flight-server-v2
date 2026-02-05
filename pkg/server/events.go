@@ -35,7 +35,7 @@ func (s *FlightServer) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 
 	// 发送ServerChallenge包
 	challenge := pdu.NewServerChallenge()
-	return pdu.Serialize(challenge), gnet.None
+	return []byte(pdu.Serialize(challenge.GetHeader(), challenge.ToTokens())), gnet.None
 }
 
 // OnClose 连接关闭时回调

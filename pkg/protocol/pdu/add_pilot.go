@@ -5,68 +5,65 @@ import (
 	"strconv"
 )
 
-// AddPilot 飞行员登录PDU (#AP)
 type AddPilot struct {
+	Base
 	Callsign        string
 	Cid             string
-	RealName        string
-	Password        string        // TODO: 密码验证
-	Rating          NetworkRating // TODO: 等级验证
+	Password        string
+	Rating          NetworkRating
 	ProtocolVersion int
-	SimType         int
+	RealName        string
+	SimType         string
 }
 
-// FromTokens 从tokens解析AddPilot
-// 格式: From:To:Cid:Password:Rating:ProtocolVersion:SimType:RealName
+func NewPDUAddPilot(from, to, cid, password string, networkRating, protocolVersion int, simType int, realName string) *AddPilot {
+	return &AddPilot{
+		Base: Base{
+			From: from,
+			To:   to,
+		},
+		Callsign:        from,
+		Cid:             cid,
+		Password:        password,
+		Rating:          NetworkRating(networkRating),
+		ProtocolVersion: protocolVersion,
+		RealName:        realName,
+		SimType:         strconv.Itoa(simType),
+	}
+}
+
 func AddPilotFromTokens(tokens []string) (*AddPilot, error) {
 	if len(tokens) < 8 {
-		return nil, fmt.Errorf("AddPilot: invalid token count, got %d, need 8", len(tokens))
+		return nil, fmt.Errorf("add pilot: invalid token count, expected >= 8, got %d", len(tokens))
 	}
-
-	rating, err := strconv.Atoi(tokens[4])
+	networkRating, err := strconv.Atoi(tokens[4])
 	if err != nil {
-		return nil, fmt.Errorf("AddPilot: invalid rating: %w", err)
+		return nil, err
 	}
-
 	protocolVersion, err := strconv.Atoi(tokens[5])
 	if err != nil {
-		return nil, fmt.Errorf("AddPilot: invalid protocol version: %w", err)
+		return nil, err
 	}
-
 	simType, err := strconv.Atoi(tokens[6])
 	if err != nil {
-		return nil, fmt.Errorf("AddPilot: invalid sim type: %w", err)
+		return nil, err
 	}
-
-	return &AddPilot{
-		Callsign:        tokens[0],
-		Cid:             tokens[2],
-		RealName:        tokens[7],
-		Password:        tokens[3],
-		Rating:          NetworkRating(rating),
-		ProtocolVersion: protocolVersion,
-		SimType:         simType,
-	}, nil
+	return NewPDUAddPilot(tokens[0], tokens[1], tokens[2], tokens[3], networkRating, protocolVersion, simType, tokens[7]), nil
 }
 
-func (p *AddPilot) GetHeader() string {
-	return "#AP"
-}
-
-func (p *AddPilot) ToTokens() []string {
+func (pdu *AddPilot) ToTokens() []string {
 	return []string{
-		p.Callsign,
-		"SERVER",
-		p.Cid,
-		p.Password,
-		strconv.Itoa(int(p.Rating)),
-		strconv.Itoa(p.ProtocolVersion),
-		strconv.Itoa(p.SimType),
-		p.RealName,
+		pdu.From,
+		pdu.To,
+		pdu.Cid,
+		pdu.Password,
+		strconv.Itoa(int(pdu.Rating)),
+		strconv.Itoa(pdu.ProtocolVersion),
+		pdu.SimType,
+		pdu.RealName,
 	}
 }
 
-// GetClientType 返回客户端类型
-func (p *AddPilot) GetClientType() ClientType {
-	return ClientTypePilot
+func (pdu *AddPilot) GetHeader() string {
+	return "#AP"
 }

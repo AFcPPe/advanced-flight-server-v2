@@ -11,8 +11,8 @@ import (
 // SendErrorAndClose 发送错误消息给客户端并断开连接
 // 确保消息发送后再关闭连接
 func SendErrorAndClose(conn gnet.Conn, to string, errorCode pdu.NetworkError, message string) error {
-	errPdu := pdu.NewServerError(to, errorCode, "", message)
-	data := pdu.Serialize(errPdu)
+	errPdu := pdu.NewServerError("SERVER", to, errorCode, "", message)
+	data := []byte(pdu.Serialize(errPdu.GetHeader(), errPdu.ToTokens()))
 
 	logger.Debug("sending error and closing connection",
 		zap.String("to", to),

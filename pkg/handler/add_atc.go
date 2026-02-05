@@ -19,11 +19,10 @@ func HandleAddATC(conn gnet.Conn, p *pdu.AddATC) error {
 	logger.Debug("handling AddATC",
 		zap.String("callsign", p.Callsign),
 		zap.String("cid", p.Cid),
-		zap.String("realname", p.RealName),
+		zap.String("realname", p.Name),
 		zap.String("password", p.Password),
 		zap.Int("rating", int(p.Rating)),
-		zap.String("rating_str", p.Rating.String()),
-		zap.Int("protocol_version", p.ProtocolVersion),
+		zap.Int("protocol_version", p.ProtocolRevision),
 		zap.String("remote", conn.RemoteAddr().String()),
 	)
 
@@ -76,7 +75,7 @@ func HandleAddATC(conn gnet.Conn, p *pdu.AddATC) error {
 	if motd := config.GetServer().Motd; motd != "" {
 		for _, line := range strings.Split(motd, "\n") {
 			if line = strings.TrimSpace(line); line != "" {
-				_ = session.Send(conn, pdu.NewServerTextMessage(p.Callsign, line))
+				_ = session.Send(conn, pdu.NewPDUTextMessage("SERVER", p.Callsign, line))
 			}
 		}
 	}
