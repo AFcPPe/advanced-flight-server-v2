@@ -54,16 +54,23 @@ func HandleAddATC(conn gnet.Conn, p *pdu.AddATC) error {
 		zap.Int("level", int(result.Level)),
 	)
 
-	// 创建session并设置callsign（在认证成功后检查重复，避免并发问题）
+	// 原子地设置callsign，避免并发竞态条件
 	mgr := session.GetManager()
-	if existingConn := mgr.GetConnByCallsign(p.Callsign); existingConn != nil {
-		logger.Warn("ATC callsign already in use",
+	success, callsignInUse := mgr.SetCallsignIfNotExist(conn, p.Callsign)
+	if !success {
+		if callsignInUse {
+			logger.Warn("ATC callsign already in use",
+				zap.String("callsign", p.Callsign),
+				zap.String("cid", p.Cid),
+			)
+			return session.SendErrorAndClose(conn, p.Callsign, pdu.NetworkErrorCallsignInUse, "callsign already in use")
+		}
+		logger.Warn("ATC session not found",
 			zap.String("callsign", p.Callsign),
 			zap.String("cid", p.Cid),
 		)
-		return session.SendErrorAndClose(conn, p.Callsign, pdu.NetworkErrorCallsignInUse, "callsign already in use")
+		return session.SendErrorAndClose(conn, p.Callsign, pdu.NetworkErrorInvalidLogon, "session not found")
 	}
-	mgr.SetCallsign(conn, p.Callsign)
 
 	// 发送 motd
 	if motd := config.GetServer().Motd; motd != "" {

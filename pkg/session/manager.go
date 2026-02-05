@@ -61,6 +61,35 @@ func (m *Manager) SetCallsign(conn gnet.Conn, callsign string) bool {
 	return true
 }
 
+// SetCallsignIfNotExist 原子地为连接设置callsign，如果callsign已被占用则返回false
+// 返回值: (success, callsignInUse)
+//   - success=true, callsignInUse=false: 设置成功
+//   - success=false, callsignInUse=true: callsign已被其他连接占用
+//   - success=false, callsignInUse=false: 连接不存在
+func (m *Manager) SetCallsignIfNotExist(conn gnet.Conn, callsign string) (success bool, callsignInUse bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	session, exists := m.connToSession[conn]
+	if !exists {
+		return false, false
+	}
+
+	// 检查callsign是否已被其他连接占用
+	if existingConn, occupied := m.callsignToConn[callsign]; occupied && existingConn != conn {
+		return false, true
+	}
+
+	// 如果之前有callsign，先移除旧的映射
+	if session.Callsign != "" {
+		delete(m.callsignToConn, session.Callsign)
+	}
+
+	session.Callsign = callsign
+	m.callsignToConn[callsign] = conn
+	return true, false
+}
+
 // RemoveConn 移除连接
 func (m *Manager) RemoveConn(conn gnet.Conn) {
 	m.mu.Lock()
