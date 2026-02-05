@@ -29,12 +29,9 @@ func HandleFlightPlan(conn gnet.Conn, p *pdu.FlightPlan) error {
 		return session.SendErrorAndClose(conn, p.Callsign, pdu.NetworkErrorInvalidControl, "only pilots can send flight plans")
 	}
 
-	// 验证callsign是否匹配
-	if sess := mgr.GetSession(conn); sess == nil || sess.Callsign != p.Callsign {
-		logger.Warn("FlightPlan callsign mismatch",
-			zap.String("pdu_callsign", p.Callsign),
-		)
-		return session.SendErrorAndClose(conn, p.Callsign, pdu.NetworkErrorInvalidControl, "callsign mismatch")
+	// 验证登录状态和callsign
+	if _, err := ValidateLoginAndCallsign(conn, p.Callsign); err != nil {
+		return err
 	}
 
 	// 存储飞行计划到Session

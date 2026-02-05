@@ -57,6 +57,18 @@ func BroadcastInRange(conn gnet.Conn, p Sendable) {
 	}
 }
 
+// SendToCallsign 向指定callsign发送PDU
+// 返回 true 表示目标存在并已发送，false 表示目标不存在
+func SendToCallsign(callsign string, p Sendable) bool {
+	mgr := GetManager()
+	targetConn := mgr.GetConnByCallsign(callsign)
+	if targetConn == nil {
+		return false
+	}
+	_ = targetConn.AsyncWrite(Serialize(p), nil)
+	return true
+}
+
 // BroadcastToATC 向所有ATC广播PDU
 func BroadcastToATC(p Sendable) {
 	data := Serialize(p)
