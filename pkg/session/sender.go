@@ -85,3 +85,17 @@ func BroadcastToATC(p Sendable) {
 		}
 	}
 }
+
+// BroadcastToAll 向所有已登录用户广播PDU
+func BroadcastToAll(p Sendable) {
+	data := Serialize(p)
+	mgr := GetManager()
+
+	sessions := mgr.GetAllSessions()
+	for _, s := range sessions {
+		if !s.IsLoggedIn() {
+			continue
+		}
+		_ = s.Conn.AsyncWrite(data, nil)
+	}
+}

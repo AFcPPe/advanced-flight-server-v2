@@ -49,6 +49,7 @@ type Session struct {
 	// ATC特有字段
 	Frequencies []string
 	Facility    int
+	Rating      int
 }
 
 // AppendBuffer 追加数据到缓存，如果超过限制则丢弃全部缓存

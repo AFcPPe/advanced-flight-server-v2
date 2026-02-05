@@ -157,7 +157,7 @@ func (m *Manager) UpdatePilotPosition(conn gnet.Conn, lat, lon float64, squawkCo
 }
 
 // UpdateATCPosition 更新ATC位置信息
-func (m *Manager) UpdateATCPosition(conn gnet.Conn, lat, lon float64, frequencies []string, facility, visRange int) {
+func (m *Manager) UpdateATCPosition(conn gnet.Conn, lat, lon float64, frequencies []string, facility, visRange, rating int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -167,6 +167,7 @@ func (m *Manager) UpdateATCPosition(conn gnet.Conn, lat, lon float64, frequencie
 		session.VisibilityRange = visRange
 		session.Frequencies = frequencies
 		session.Facility = facility
+		session.Rating = rating
 	}
 }
 

@@ -35,7 +35,7 @@ func HandleATCPosition(conn gnet.Conn, p *pdu.ATCPosition) error {
 	}
 
 	// 更新ATC位置信息
-	mgr.UpdateATCPosition(conn, p.Lat, p.Lon, p.Frequencies, int(p.Facility), p.VisibilityRange)
+	mgr.UpdateATCPosition(conn, p.Lat, p.Lon, p.Frequencies, int(p.Facility), p.VisibilityRange, int(p.Rating))
 
 	// 范围广播原始PDU
 	session.BroadcastInRange(conn, p)

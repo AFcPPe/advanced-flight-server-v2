@@ -17,11 +17,10 @@ func DispatchDollar(conn gnet.Conn, pkt *protocol.Packet) error {
 		return handler.HandleClientIdentification(conn, pkt)
 	case "FP":
 		return dispatchFlightPlan(conn, pkt)
-	// TODO: 根据子类型分发到具体处理函数
-	// case "CQ":
-	//     return packet.HandleDollarCQ(conn, pkt)
-	// case "CR":
-	//     return packet.HandleDollarCR(conn, pkt)
+	case "CQ":
+		return dispatchClientQuery(conn, pkt)
+	case "CR":
+		return dispatchClientQueryResponse(conn, pkt)
 	default:
 		logger.Debug("unhandled dollar packet subtype",
 			zap.String("subtype", pkt.SubType),
@@ -38,4 +37,24 @@ func dispatchFlightPlan(conn gnet.Conn, pkt *protocol.Packet) error {
 		return err
 	}
 	return handler.HandleFlightPlan(conn, p)
+}
+
+// dispatchClientQuery 解析并分发客户端查询包
+func dispatchClientQuery(conn gnet.Conn, pkt *protocol.Packet) error {
+	p, err := pdu.ClientQueryFromTokens(pkt.Tokens)
+	if err != nil {
+		logger.Error("failed to parse ClientQuery", zap.Error(err))
+		return err
+	}
+	return handler.HandleClientQuery(conn, p)
+}
+
+// dispatchClientQueryResponse 解析并分发客户端查询响应包
+func dispatchClientQueryResponse(conn gnet.Conn, pkt *protocol.Packet) error {
+	p, err := pdu.ClientQueryResponseFromTokens(pkt.Tokens)
+	if err != nil {
+		logger.Error("failed to parse ClientQueryResponse", zap.Error(err))
+		return err
+	}
+	return handler.HandleClientQueryResponse(conn, p)
 }
