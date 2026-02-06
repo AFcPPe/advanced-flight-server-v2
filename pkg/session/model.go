@@ -52,12 +52,13 @@ type Session struct {
 	Bank             float64
 	FlightPlan       *FlightPlanData // 飞行计划
 	FlightPlanLocked bool            // 飞行计划是否被ATC锁定（被TagModify修改后锁定）
+	Rating           int             // 登录时请求的等级（Pilot和ATC共用）
 
 	// ATC特有字段
-	Frequencies []string
-	Facility    int
-	Rating      int
-	TextAtis    []string // ATIS文本信息
+	Frequencies   []string
+	Facility      int
+	TextAtis      []string  // ATIS文本信息
+	LastAtisQuery time.Time // 上次向该ATC询问ATIS的时间
 }
 
 // AppendBuffer 追加数据到缓存，如果超过限制则丢弃全部缓存

@@ -120,6 +120,7 @@ func buildPilot(s *session.Session) *Pilot {
 		Identing:         s.Identing,
 		VisibilityRange:  s.VisibilityRange,
 		FlightPlanLocked: s.FlightPlanLocked,
+		Rating:           s.Rating,
 		LogonTime:        s.LogonTime.UTC().Format(time.RFC3339),
 	}
 	if s.FlightPlan != nil {

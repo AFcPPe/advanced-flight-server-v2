@@ -71,9 +71,10 @@ func HandleAddATC(conn gnet.Conn, p *pdu.AddATC) error {
 		return session.SendErrorAndClose(conn, p.Callsign, pdu.NetworkErrorInvalidLogon, "session not found")
 	}
 
-	// 设置连接类型为ATC，并保存CID
+	// 设置连接类型为ATC，并保存CID和登录等级
 	mgr.SetConnType(conn, session.ConnectionTypeATC)
 	mgr.SetCid(conn, p.Cid)
+	mgr.SetRating(conn, int(p.Rating))
 
 	// 发送 motd
 	if motd := config.GetServer().Motd; motd != "" {
@@ -83,6 +84,9 @@ func HandleAddATC(conn gnet.Conn, p *pdu.AddATC) error {
 			}
 		}
 	}
+
+	// 询问 ATC 的 ATIS 信息
+	_ = session.Send(conn, pdu.NewPDUClientQuery("SERVER", p.Callsign, "ATIS", nil))
 
 	return nil
 }

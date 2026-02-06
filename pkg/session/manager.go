@@ -308,6 +308,16 @@ func (m *Manager) UpdateTextAtis(conn gnet.Conn, payload []string) {
 	}
 }
 
+// SetRating 设置用户登录等级
+func (m *Manager) SetRating(conn gnet.Conn, rating int) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if session, exists := m.connToSession[conn]; exists {
+		session.Rating = rating
+	}
+}
+
 // SetCid 设置用户CID
 func (m *Manager) SetCid(conn gnet.Conn, cid string) {
 	m.mu.Lock()

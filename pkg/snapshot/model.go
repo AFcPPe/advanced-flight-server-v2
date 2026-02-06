@@ -26,6 +26,7 @@ type Pilot struct {
 	VisibilityRange  int         `json:"visibility_range"`
 	FlightPlan       *FlightPlan `json:"flight_plan,omitempty"`
 	FlightPlanLocked bool        `json:"flight_plan_locked"`
+	Rating           int         `json:"rating"`
 	LogonTime        string      `json:"logon_time"`
 }
 

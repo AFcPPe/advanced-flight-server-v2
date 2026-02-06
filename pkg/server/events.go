@@ -175,5 +175,17 @@ func (s *FlightServer) OnTick() (delay time.Duration, action gnet.Action) {
 		}
 	}
 
+	// 每30秒向每个ATC单独询问ATIS
+	now := time.Now()
+	sessions := s.sessionMgr.GetAllSessions()
+	for _, sess := range sessions {
+		if sess.IsLoggedIn() && sess.ConnType == session.ConnectionTypeATC {
+			if now.Sub(sess.LastAtisQuery) >= 30*time.Second {
+				sess.LastAtisQuery = now
+				_ = session.Send(sess.Conn, pdu.NewPDUClientQuery("SERVER", sess.Callsign, "ATIS", nil))
+			}
+		}
+	}
+
 	return TickInterval, gnet.None
 }

@@ -29,6 +29,8 @@ func DispatchDollar(conn gnet.Conn, pkt *protocol.Packet) error {
 		return dispatchTagModify(conn, pkt)
 	case "AX":
 		return dispatchMetarRequest(conn, pkt)
+	case "!!":
+		return dispatchKillRequest(conn, pkt)
 	default:
 		logger.Debug("unhandled dollar packet subtype",
 			zap.String("subtype", pkt.SubType),
@@ -105,4 +107,14 @@ func dispatchMetarRequest(conn gnet.Conn, pkt *protocol.Packet) error {
 		return err
 	}
 	return handler.HandleMetarRequest(conn, p)
+}
+
+// dispatchKillRequest 解析并分发踢人请求包
+func dispatchKillRequest(conn gnet.Conn, pkt *protocol.Packet) error {
+	p, err := pdu.KillRequestFromTokens(pkt.Tokens)
+	if err != nil {
+		logger.Error("failed to parse KillRequest", zap.Error(err))
+		return err
+	}
+	return handler.HandleKillRequest(conn, p)
 }
