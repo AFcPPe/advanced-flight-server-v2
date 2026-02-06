@@ -35,9 +35,10 @@ type LoggerConfig struct {
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
-	Host string `mapstructure:"host"`
-	Port int    `mapstructure:"port"`
-	Motd string `mapstructure:"motd"` // 登录成功后发送的欢迎消息
+	Host        string `mapstructure:"host"`
+	Port        int    `mapstructure:"port"`
+	Motd        string `mapstructure:"motd"`         // 登录成功后发送的欢迎消息
+	AuthTimeout int    `mapstructure:"auth_timeout"` // 认证/登录超时时间（秒），连接后须在此时间内完成$ID认证，认证后须在此时间内完成登录
 }
 
 // DatabaseAccountConfig 数据库账户配置
@@ -111,9 +112,10 @@ func DefaultConfig() *Config {
 			Console:    true,
 		},
 		Server: ServerConfig{
-			Host: "0.0.0.0",
-			Port: 6809,
-			Motd: "Welcome to Advanced Flight Server!",
+			Host:        "0.0.0.0",
+			Port:        6809,
+			Motd:        "Welcome to Advanced Flight Server!",
+			AuthTimeout: 5,
 		},
 		Metar: MetarConfig{
 			URL:      "http://metar.vatsim.net/metar.php?id=ALL",

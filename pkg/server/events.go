@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"time"
 
+	"advanced-flight-server/pkg/config"
 	"advanced-flight-server/pkg/dispatcher"
 	"advanced-flight-server/pkg/errs"
 	"advanced-flight-server/pkg/logger"
@@ -151,6 +152,7 @@ func (s *FlightServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 
 // OnTick 定时检查空闲连接并断开
 func (s *FlightServer) OnTick() (delay time.Duration, action gnet.Action) {
+	// 检查空闲超时
 	idleConns := s.sessionMgr.GetIdleConns(IdleTimeout)
 	for _, c := range idleConns {
 		callsign := s.sessionMgr.GetCallsignByConn(c)
@@ -160,5 +162,18 @@ func (s *FlightServer) OnTick() (delay time.Duration, action gnet.Action) {
 		)
 		_ = c.Close()
 	}
+
+	// 检查认证/登录超时
+	authTimeout := time.Duration(config.GetServer().AuthTimeout) * time.Second
+	if authTimeout > 0 {
+		authTimeoutConns := s.sessionMgr.GetAuthTimeoutConns(authTimeout)
+		for _, c := range authTimeoutConns {
+			logger.Warn("closing connection due to auth/login timeout",
+				zap.String("remote", c.RemoteAddr().String()),
+			)
+			_ = c.Close()
+		}
+	}
+
 	return TickInterval, gnet.None
 }

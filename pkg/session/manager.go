@@ -35,9 +35,11 @@ func (m *Manager) AddConn(conn gnet.Conn) *Session {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	now := time.Now()
 	session := &Session{
 		Conn:         conn,
-		LastActivity: time.Now(),
+		LastActivity: now,
+		LogonTime:    now,
 	}
 	m.connToSession[conn] = session
 	return session
@@ -242,6 +244,40 @@ func (m *Manager) GetIdleConns(timeout time.Duration) []gnet.Conn {
 		}
 	}
 	return idle
+}
+
+// GetAuthTimeoutConns 获取认证/登录超时的连接列表
+// 1. 连接后未在timeout内完成$ID认证的连接
+// 2. $ID认证后未在timeout内完成登录（设置callsign）的连接
+func (m *Manager) GetAuthTimeoutConns(timeout time.Duration) []gnet.Conn {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	now := time.Now()
+	var result []gnet.Conn
+	for conn, sess := range m.connToSession {
+		// 已登录的连接不需要检查
+		if sess.IsLoggedIn() {
+			continue
+		}
+		// 正在关闭的连接不需要再踢
+		if sess.Closing {
+			continue
+		}
+
+		if !sess.Authenticated {
+			// 未完成$ID认证，检查连接时间
+			if now.Sub(sess.LogonTime) > timeout {
+				result = append(result, conn)
+			}
+		} else {
+			// 已完成$ID认证但未登录，检查认证完成时间
+			if now.Sub(sess.AuthenticatedTime) > timeout {
+				result = append(result, conn)
+			}
+		}
+	}
+	return result
 }
 
 // UpdateTextAtis 处理ATIS文本更新

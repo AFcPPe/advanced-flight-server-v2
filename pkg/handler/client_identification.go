@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"time"
+
 	"advanced-flight-server/pkg/logger"
 	"advanced-flight-server/pkg/protocol"
 	"advanced-flight-server/pkg/session"
@@ -24,6 +26,7 @@ func HandleClientIdentification(conn gnet.Conn, pkt *protocol.Packet) error {
 
 	// 标记为已认证
 	sess.Authenticated = true
+	sess.AuthenticatedTime = time.Now()
 
 	// TODO: 解析$ID包内容并验证
 	// TODO: 验证客户端版本等信息

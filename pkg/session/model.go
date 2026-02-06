@@ -24,14 +24,16 @@ const (
 
 // Session 表示一个客户端连接的会话信息
 type Session struct {
-	Conn          gnet.Conn
-	Callsign      string
-	Cid           string         // 用户CID
-	Buffer        []byte         // 用于处理粘包的缓存
-	Authenticated bool           // 是否已通过$ID验证（首包必须是$ID）
-	Closing       bool           // 是否正在关闭连接（发送错误后等待断开）
-	ConnType      ConnectionType // 连接类型：Pilot或ATC
-	LastActivity  time.Time      // 最后一次收到数据的时间
+	Conn              gnet.Conn
+	Callsign          string
+	Cid               string         // 用户CID
+	Buffer            []byte         // 用于处理粘包的缓存
+	Authenticated     bool           // 是否已通过$ID验证（首包必须是$ID）
+	AuthenticatedTime time.Time      // $ID认证完成的时间
+	Closing           bool           // 是否正在关闭连接（发送错误后等待断开）
+	ConnType          ConnectionType // 连接类型：Pilot或ATC
+	LastActivity      time.Time      // 最后一次收到数据的时间
+	LogonTime         time.Time      // 连接建立的时间
 
 	// 位置信息（Pilot和ATC共用）
 	Lat             float64
