@@ -55,6 +55,7 @@ type Session struct {
 	Frequencies []string
 	Facility    int
 	Rating      int
+	TextAtis    []string // ATIS文本信息
 }
 
 // AppendBuffer 追加数据到缓存，如果超过限制则丢弃全部缓存

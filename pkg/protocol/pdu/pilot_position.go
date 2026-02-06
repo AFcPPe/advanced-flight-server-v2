@@ -78,14 +78,14 @@ func PilotPositionFromTokens(tokens []string) (*PilotPosition, error) {
 	bank := pbhValue[1]
 	lat, _ := strconv.ParseFloat(tokens[4], 64)
 	lon, _ := strconv.ParseFloat(tokens[5], 64)
-	return NewPDUPilotPosition(tokens[1], txCode, tokens[0] == "N", tokens[0] == "I", rating,
+	return NewPDUPilotPosition(tokens[1], txCode, tokens[0] == "N", tokens[0] == "Y" || tokens[0] == "I", rating,
 		lat, lon, trueAlt, pressureAlt, gs, pitch, heading, bank), nil
 }
 
 func (p *PilotPosition) ToTokens() []string {
 	identing := "S"
 	if p.Identing {
-		identing = "I"
+		identing = "Y"
 	} else if p.SquawkingModeC {
 		identing = "N"
 	}

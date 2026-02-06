@@ -244,6 +244,34 @@ func (m *Manager) GetIdleConns(timeout time.Duration) []gnet.Conn {
 	return idle
 }
 
+// UpdateTextAtis 处理ATIS文本更新
+func (m *Manager) UpdateTextAtis(conn gnet.Conn, payload []string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	session, exists := m.connToSession[conn]
+	if !exists {
+		return
+	}
+
+	if len(payload) < 1 {
+		return
+	}
+
+	switch payload[0] {
+	case "T":
+		if len(payload) >= 2 {
+			session.TextAtis = append(session.TextAtis, payload[1])
+		}
+	case "V":
+		session.TextAtis = make([]string, 0)
+	case "Z":
+		if len(payload) >= 2 {
+			session.TextAtis = append(session.TextAtis, "Expected logoff time: "+payload[1])
+		}
+	}
+}
+
 // SetCid 设置用户CID
 func (m *Manager) SetCid(conn gnet.Conn, cid string) {
 	m.mu.Lock()

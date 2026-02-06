@@ -27,6 +27,11 @@ func HandleClientQueryResponse(conn gnet.Conn, p *pdu.ClientQueryResponse) error
 		return err
 	}
 
+	// 如果type是ATIS，更新发送者的TextAtis
+	if p.Type == "ATIS" {
+		session.GetManager().UpdateTextAtis(conn, p.Payload)
+	}
+
 	to := strings.ToLower(p.To)
 
 	// to 是 server，忽略
