@@ -12,6 +12,7 @@ type Snapshot struct {
 type Pilot struct {
 	CID              string      `json:"cid"`
 	Callsign         string      `json:"callsign"`
+	Name             string      `json:"name"`
 	Lat              float64     `json:"lat"`
 	Lon              float64     `json:"lon"`
 	TrueAltitude     int         `json:"true_altitude"`
@@ -34,6 +35,7 @@ type Pilot struct {
 type ATC struct {
 	CID             string   `json:"cid"`
 	Callsign        string   `json:"callsign"`
+	Name            string   `json:"name"`
 	Lat             float64  `json:"lat"`
 	Lon             float64  `json:"lon"`
 	Frequencies     []string `json:"frequencies"`
@@ -48,6 +50,7 @@ type ATC struct {
 type ATIS struct {
 	CID             string   `json:"cid"`
 	Callsign        string   `json:"callsign"`
+	Name            string   `json:"name"`
 	Lat             float64  `json:"lat"`
 	Lon             float64  `json:"lon"`
 	Frequencies     []string `json:"frequencies"`

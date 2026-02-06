@@ -27,6 +27,7 @@ type Session struct {
 	Conn              gnet.Conn
 	Callsign          string
 	Cid               string         // 用户CID
+	RealName          string         // 用户真实姓名
 	Buffer            []byte         // 用于处理粘包的缓存
 	Authenticated     bool           // 是否已通过$ID验证（首包必须是$ID）
 	AuthenticatedTime time.Time      // $ID认证完成的时间

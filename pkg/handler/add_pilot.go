@@ -76,6 +76,7 @@ func HandleAddPilot(conn gnet.Conn, p *pdu.AddPilot) error {
 	mgr.SetConnType(conn, session.ConnectionTypePilot)
 	mgr.SetCid(conn, p.Cid)
 	mgr.SetRating(conn, int(p.Rating))
+	mgr.SetRealName(conn, p.RealName)
 
 	// 发送 motd
 	if motd := config.GetServer().Motd; motd != "" {

@@ -75,6 +75,7 @@ func HandleAddATC(conn gnet.Conn, p *pdu.AddATC) error {
 	mgr.SetConnType(conn, session.ConnectionTypeATC)
 	mgr.SetCid(conn, p.Cid)
 	mgr.SetRating(conn, int(p.Rating))
+	mgr.SetRealName(conn, p.Name)
 
 	// 发送 motd
 	if motd := config.GetServer().Motd; motd != "" {

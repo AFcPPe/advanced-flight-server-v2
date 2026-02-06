@@ -107,6 +107,7 @@ func buildPilot(s *session.Session) *Pilot {
 	p := &Pilot{
 		CID:              s.Cid,
 		Callsign:         s.Callsign,
+		Name:             s.RealName,
 		Lat:              s.Lat,
 		Lon:              s.Lon,
 		TrueAltitude:     s.TrueAltitude,
@@ -134,6 +135,7 @@ func buildATC(s *session.Session) *ATC {
 	return &ATC{
 		CID:             s.Cid,
 		Callsign:        s.Callsign,
+		Name:            s.RealName,
 		Lat:             s.Lat,
 		Lon:             s.Lon,
 		Frequencies:     formatFrequencies(s.Frequencies),
@@ -150,6 +152,7 @@ func buildATIS(s *session.Session) *ATIS {
 	return &ATIS{
 		CID:             s.Cid,
 		Callsign:        s.Callsign,
+		Name:            s.RealName,
 		Lat:             s.Lat,
 		Lon:             s.Lon,
 		Frequencies:     formatFrequencies(s.Frequencies),

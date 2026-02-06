@@ -327,3 +327,13 @@ func (m *Manager) SetCid(conn gnet.Conn, cid string) {
 		session.Cid = cid
 	}
 }
+
+// SetRealName 设置用户真实姓名
+func (m *Manager) SetRealName(conn gnet.Conn, realName string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if session, exists := m.connToSession[conn]; exists {
+		session.RealName = realName
+	}
+}
