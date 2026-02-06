@@ -161,6 +161,11 @@ func GetServer() *ServerConfig {
 	return &Get().Server
 }
 
+// GetRedis 获取Redis配置
+func GetRedis() *RedisConfig {
+	return &Get().Redis
+}
+
 // Reload 重新加载配置
 func Reload() error {
 	if err := viper.ReadInConfig(); err != nil {

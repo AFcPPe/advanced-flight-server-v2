@@ -6,7 +6,15 @@ type Config struct {
 	Logger           LoggerConfig                     `mapstructure:"logger"`
 	Server           ServerConfig                     `mapstructure:"server"`
 	Metar            MetarConfig                      `mapstructure:"metar"`
+	Redis            RedisConfig                      `mapstructure:"redis"`
 	DatabaseAccounts map[string]DatabaseAccountConfig `mapstructure:"database_accounts"`
+}
+
+// RedisConfig Redis配置
+type RedisConfig struct {
+	Addr     string `mapstructure:"addr"`     // Redis地址，如 127.0.0.1:6379
+	Password string `mapstructure:"password"` // 密码，无密码留空
+	DB       int    `mapstructure:"db"`       // 数据库编号
 }
 
 // MetarConfig METAR天气同步配置
@@ -120,6 +128,11 @@ func DefaultConfig() *Config {
 		Metar: MetarConfig{
 			URL:      "http://metar.vatsim.net/metar.php?id=ALL",
 			Interval: 10,
+		},
+		Redis: RedisConfig{
+			Addr:     "127.0.0.1:6379",
+			Password: "",
+			DB:       0,
 		},
 		DatabaseAccounts: map[string]DatabaseAccountConfig{
 			"account": {

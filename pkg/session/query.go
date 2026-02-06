@@ -54,6 +54,20 @@ func (m *Manager) GetAllSessions() []*Session {
 	return sessions
 }
 
+// GetLoggedInSessions 获取所有已登录的会话（已认证且有callsign）
+func (m *Manager) GetLoggedInSessions() []*Session {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	sessions := make([]*Session, 0, len(m.callsignToConn))
+	for _, conn := range m.callsignToConn {
+		if s, exists := m.connToSession[conn]; exists && s.IsLoggedIn() {
+			sessions = append(sessions, s)
+		}
+	}
+	return sessions
+}
+
 // Count 返回当前连接数
 func (m *Manager) Count() int {
 	m.mu.RLock()

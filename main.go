@@ -5,6 +5,7 @@ import (
 	"advanced-flight-server/pkg/cron"
 	"advanced-flight-server/pkg/database"
 	"advanced-flight-server/pkg/logger"
+	"advanced-flight-server/pkg/redis"
 	"advanced-flight-server/pkg/server"
 	"advanced-flight-server/pkg/service"
 	"os"
@@ -51,6 +52,10 @@ func main() {
 		}
 	}
 	defer database.CloseAll()
+
+	// 初始化Redis
+	redis.Init()
+	defer redis.Close()
 
 	// 初始化服务
 	service.Init()
