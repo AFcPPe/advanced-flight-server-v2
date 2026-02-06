@@ -27,6 +27,8 @@ func DispatchDollar(conn gnet.Conn, pkt *protocol.Packet) error {
 		return dispatchHandOffAccept(conn, pkt)
 	case "AM":
 		return dispatchTagModify(conn, pkt)
+	case "AX":
+		return dispatchMetarRequest(conn, pkt)
 	default:
 		logger.Debug("unhandled dollar packet subtype",
 			zap.String("subtype", pkt.SubType),
@@ -93,4 +95,14 @@ func dispatchTagModify(conn gnet.Conn, pkt *protocol.Packet) error {
 		return err
 	}
 	return handler.HandleTagModify(conn, p)
+}
+
+// dispatchMetarRequest 解析并分发METAR请求包
+func dispatchMetarRequest(conn gnet.Conn, pkt *protocol.Packet) error {
+	p, err := pdu.MetarRequestFromTokens(pkt.Tokens)
+	if err != nil {
+		logger.Error("failed to parse MetarRequest", zap.Error(err))
+		return err
+	}
+	return handler.HandleMetarRequest(conn, p)
 }

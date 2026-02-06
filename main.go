@@ -2,6 +2,7 @@ package main
 
 import (
 	"advanced-flight-server/pkg/config"
+	"advanced-flight-server/pkg/cron"
 	"advanced-flight-server/pkg/database"
 	"advanced-flight-server/pkg/logger"
 	"advanced-flight-server/pkg/server"
@@ -53,6 +54,9 @@ func main() {
 
 	// 初始化服务
 	service.Init()
+
+	// 初始化定时任务（METAR同步等）
+	cron.Init()
 
 	// 启动 TCP 服务器
 	srv := server.NewFlightServer(serverCfg.Host, serverCfg.Port)

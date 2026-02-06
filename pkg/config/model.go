@@ -5,7 +5,14 @@ type Config struct {
 	App              AppConfig                        `mapstructure:"app"`
 	Logger           LoggerConfig                     `mapstructure:"logger"`
 	Server           ServerConfig                     `mapstructure:"server"`
+	Metar            MetarConfig                      `mapstructure:"metar"`
 	DatabaseAccounts map[string]DatabaseAccountConfig `mapstructure:"database_accounts"`
+}
+
+// MetarConfig METAR天气同步配置
+type MetarConfig struct {
+	URL      string `mapstructure:"url"`      // METAR数据源URL
+	Interval int    `mapstructure:"interval"` // 同步间隔（分钟）
 }
 
 // AppConfig 应用配置
@@ -107,6 +114,10 @@ func DefaultConfig() *Config {
 			Host: "0.0.0.0",
 			Port: 6809,
 			Motd: "Welcome to Advanced Flight Server!",
+		},
+		Metar: MetarConfig{
+			URL:      "http://metar.vatsim.net/metar.php?id=ALL",
+			Interval: 10,
 		},
 		DatabaseAccounts: map[string]DatabaseAccountConfig{
 			"account": {
