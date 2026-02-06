@@ -60,3 +60,10 @@ func (m *Manager) Count() int {
 	defer m.mu.RUnlock()
 	return len(m.connToSession)
 }
+
+// CallsignCount 返回当前已注册的callsign数量
+func (m *Manager) CallsignCount() int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return len(m.callsignToConn)
+}

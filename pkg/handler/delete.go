@@ -33,7 +33,7 @@ func HandleDeletePilot(conn gnet.Conn, p *pdu.DeletePilot) error {
 	}
 
 	// 广播给所有已登录用户
-	session.BroadcastToAll(p)
+	session.BroadcastToAll(conn, p)
 
 	// 关闭发送者的连接
 	return conn.Close()
@@ -63,7 +63,7 @@ func HandleDeleteATC(conn gnet.Conn, p *pdu.DeleteATC) error {
 	}
 
 	// 广播给所有已登录用户
-	session.BroadcastToAll(p)
+	session.BroadcastToAll(conn, p)
 
 	// 关闭发送者的连接
 	return conn.Close()

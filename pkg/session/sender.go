@@ -3,6 +3,7 @@ package session
 import (
 	"strings"
 
+	"advanced-flight-server/pkg/protocol/pdu"
 	"advanced-flight-server/pkg/util"
 
 	"github.com/panjf2000/gnet/v2"
@@ -22,6 +23,9 @@ func Serialize(p Sendable) []byte {
 
 // Send 向指定连接发送PDU（回复性发送）
 func Send(conn gnet.Conn, p Sendable) error {
+	if conn == nil {
+		return nil
+	}
 	return conn.AsyncWrite(Serialize(p), nil)
 }
 
@@ -52,7 +56,9 @@ func BroadcastInRange(conn gnet.Conn, p Sendable) {
 
 		// 距离小于二者VisibilityRange之和则发送
 		if distance < float64(senderSession.VisibilityRange+s.VisibilityRange) {
-			_ = s.Conn.AsyncWrite(data, nil)
+			if s.Conn != nil {
+				_ = s.Conn.AsyncWrite(data, nil)
+			}
 		}
 	}
 }
@@ -69,33 +75,64 @@ func SendToCallsign(callsign string, p Sendable) bool {
 	return true
 }
 
-// BroadcastToATC 向所有ATC广播PDU
-func BroadcastToATC(p Sendable) {
+// BroadcastToATC 向所有ATC广播PDU（排除发送者）
+func BroadcastToATC(conn gnet.Conn, p Sendable) {
 	data := Serialize(p)
 	mgr := GetManager()
 
 	sessions := mgr.GetAllSessions()
 	for _, s := range sessions {
+		if s.Conn == conn {
+			continue
+		}
+
 		if !s.IsLoggedIn() {
 			continue
 		}
 
-		if s.ConnType == ConnectionTypeATC {
+		if s.ConnType == ConnectionTypeATC && s.Conn != nil {
 			_ = s.Conn.AsyncWrite(data, nil)
 		}
 	}
 }
 
-// BroadcastToAll 向所有已登录用户广播PDU
-func BroadcastToAll(p Sendable) {
+// BroadcastToSupervisors 向所有Supervisor及以上等级用户广播PDU（SUP、ADM，排除发送者）
+func BroadcastToSupervisors(conn gnet.Conn, p Sendable) {
 	data := Serialize(p)
 	mgr := GetManager()
 
 	sessions := mgr.GetAllSessions()
 	for _, s := range sessions {
+		if s.Conn == conn {
+			continue
+		}
+
 		if !s.IsLoggedIn() {
 			continue
 		}
-		_ = s.Conn.AsyncWrite(data, nil)
+
+		if s.Rating >= int(pdu.RatingSUP) && s.Conn != nil {
+			_ = s.Conn.AsyncWrite(data, nil)
+		}
+	}
+}
+
+// BroadcastToAll 向所有已登录用户广播PDU（排除发送者）
+func BroadcastToAll(conn gnet.Conn, p Sendable) {
+	data := Serialize(p)
+	mgr := GetManager()
+
+	sessions := mgr.GetAllSessions()
+	for _, s := range sessions {
+		if s.Conn == conn {
+			continue
+		}
+
+		if !s.IsLoggedIn() {
+			continue
+		}
+		if s.Conn != nil {
+			_ = s.Conn.AsyncWrite(data, nil)
+		}
 	}
 }

@@ -25,6 +25,8 @@ func DispatchHash(conn gnet.Conn, pkt *protocol.Packet) error {
 		return dispatchDeletePilot(conn, pkt)
 	case "DA":
 		return dispatchDeleteATC(conn, pkt)
+	case "TM":
+		return dispatchTextMessage(conn, pkt)
 	default:
 		logger.Debug("unhandled hash packet subtype",
 			zap.String("subtype", pkt.SubType),
@@ -91,4 +93,14 @@ func dispatchDeleteATC(conn gnet.Conn, pkt *protocol.Packet) error {
 		return err
 	}
 	return handler.HandleDeleteATC(conn, p)
+}
+
+// dispatchTextMessage 解析并分发文本消息包
+func dispatchTextMessage(conn gnet.Conn, pkt *protocol.Packet) error {
+	p, err := pdu.TextMessageFromTokens(pkt.Tokens)
+	if err != nil {
+		logger.Error("failed to parse TextMessage", zap.Error(err))
+		return err
+	}
+	return handler.HandleTextMessage(conn, p)
 }

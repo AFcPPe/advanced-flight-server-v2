@@ -41,6 +41,7 @@ func (s *FlightServer) Run() error {
 	return gnet.Run(s, s.opts.Address(),
 		gnet.WithMulticore(s.opts.Multicore),
 		gnet.WithReusePort(s.opts.ReusePort),
+		gnet.WithTicker(true),
 	)
 }
 

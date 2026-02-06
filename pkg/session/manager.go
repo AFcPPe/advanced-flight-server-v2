@@ -2,6 +2,7 @@ package session
 
 import (
 	"sync"
+	"time"
 
 	"github.com/panjf2000/gnet/v2"
 )
@@ -35,7 +36,8 @@ func (m *Manager) AddConn(conn gnet.Conn) *Session {
 	defer m.mu.Unlock()
 
 	session := &Session{
-		Conn: conn,
+		Conn:         conn,
+		LastActivity: time.Now(),
 	}
 	m.connToSession[conn] = session
 	return session
@@ -77,7 +79,13 @@ func (m *Manager) SetCallsignIfNotExist(conn gnet.Conn, callsign string) (succes
 
 	// 检查callsign是否已被其他连接占用
 	if existingConn, occupied := m.callsignToConn[callsign]; occupied && existingConn != conn {
-		return false, true
+		// 检查占用callsign的连接是否还存在于connToSession中
+		// 如果不存在，说明是残留的脏数据，清理后允许使用
+		if _, stale := m.connToSession[existingConn]; !stale {
+			delete(m.callsignToConn, callsign)
+		} else {
+			return false, true
+		}
 	}
 
 	// 如果之前有callsign，先移除旧的映射
@@ -179,6 +187,31 @@ func (m *Manager) UpdateFlightPlan(conn gnet.Conn, fp *FlightPlanData) {
 	if session, exists := m.connToSession[conn]; exists {
 		session.FlightPlan = fp
 	}
+}
+
+// UpdateLastActivity 更新连接的最后活动时间
+func (m *Manager) UpdateLastActivity(conn gnet.Conn) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if session, exists := m.connToSession[conn]; exists {
+		session.LastActivity = time.Now()
+	}
+}
+
+// GetIdleConns 获取超过指定时长未活动的连接列表
+func (m *Manager) GetIdleConns(timeout time.Duration) []gnet.Conn {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	now := time.Now()
+	var idle []gnet.Conn
+	for conn, sess := range m.connToSession {
+		if now.Sub(sess.LastActivity) > timeout {
+			idle = append(idle, conn)
+		}
+	}
+	return idle
 }
 
 // SetCid 设置用户CID

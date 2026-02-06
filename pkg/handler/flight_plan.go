@@ -39,7 +39,7 @@ func HandleFlightPlan(conn gnet.Conn, p *pdu.FlightPlan) error {
 	mgr.UpdateFlightPlan(conn, fpData)
 
 	// 广播给所有ATC
-	session.BroadcastToATC(p)
+	session.BroadcastToATC(conn, p)
 
 	return nil
 }

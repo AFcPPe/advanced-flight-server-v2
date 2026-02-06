@@ -36,7 +36,7 @@ func HandleClientQueryResponse(conn gnet.Conn, p *pdu.ClientQueryResponse) error
 
 	// to 以 @ 开头，转发给所有已登录用户
 	if strings.HasPrefix(to, "@") {
-		session.BroadcastToAll(p)
+		session.BroadcastToAll(conn, p)
 		return nil
 	}
 
