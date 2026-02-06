@@ -27,6 +27,7 @@ type Session struct {
 	Cid           string         // 用户CID
 	Buffer        []byte         // 用于处理粘包的缓存
 	Authenticated bool           // 是否已通过$ID验证（首包必须是$ID）
+	Closing       bool           // 是否正在关闭连接（发送错误后等待断开）
 	ConnType      ConnectionType // 连接类型：Pilot或ATC
 
 	// 位置信息（Pilot和ATC共用）

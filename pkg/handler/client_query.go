@@ -59,7 +59,7 @@ func HandleClientQuery(conn gnet.Conn, p *pdu.ClientQuery) error {
 func handleServerQuery(conn gnet.Conn, sess *session.Session, p *pdu.ClientQuery) error {
 	switch p.Type {
 	case "ATC":
-		return handleATCQuery(conn, sess, p)
+		return handleATCQuery(conn, p)
 	case "CAPS":
 		return handleCAPSQuery(conn, p)
 	case "IP":
@@ -77,25 +77,37 @@ func handleServerQuery(conn gnet.Conn, sess *session.Session, p *pdu.ClientQuery
 }
 
 // handleATCQuery 处理 ATC 查询
-// 检查连接类型是否为ATC，等级不是OBS，设施不是Observer
-func handleATCQuery(conn gnet.Conn, sess *session.Session, p *pdu.ClientQuery) error {
+// 检查Payload[0]指定的callsign是否为ATC，等级不是OBS，设施不是Observer
+func handleATCQuery(conn gnet.Conn, p *pdu.ClientQuery) error {
+	if len(p.Payload) == 0 {
+		return nil
+	}
+
+	targetCallsign := p.Payload[0]
+
+	// 查找目标用户的会话
+	targetSess := session.GetManager().GetSessionByCallsign(targetCallsign)
+	if targetSess == nil {
+		return nil
+	}
+
 	// 检查是否是ATC连接
-	if sess.ConnType != session.ConnectionTypeATC {
+	if targetSess.ConnType != session.ConnectionTypeATC {
 		return nil
 	}
 
 	// 检查等级不是OBS (RatingOBS = 1)
-	if sess.Rating == int(pdu.RatingOBS) {
+	if targetSess.Rating == int(pdu.RatingOBS) {
 		return nil
 	}
 
 	// 检查设施不是Observer (Observer = 0)
-	if sess.Facility == int(pdu.Observer) {
+	if targetSess.Facility == int(pdu.Observer) {
 		return nil
 	}
 
-	// 回复：From SERVER, type ATC, Payload: ["Y", callsign]
-	response := pdu.NewPDUClientQueryResponse("SERVER", p.From, "ATC", []string{"Y", p.From})
+	// 回复：From SERVER, type ATC, Payload: ["Y", targetCallsign]
+	response := pdu.NewPDUClientQueryResponse("SERVER", p.From, "ATC", []string{"Y", targetCallsign})
 	return session.Send(conn, response)
 }
 

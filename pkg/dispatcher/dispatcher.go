@@ -27,6 +27,11 @@ func Dispatch(conn gnet.Conn, pkt *protocol.Packet) error {
 		return errors.New("session not found")
 	}
 
+	// 连接正在关闭中，静默丢弃后续包
+	if sess.Closing {
+		return nil
+	}
+
 	// 如果未认证，首包必须是$ID
 	if !sess.Authenticated {
 		if pkt.Type != protocol.PacketTypeDollar || pkt.SubType != "ID" {

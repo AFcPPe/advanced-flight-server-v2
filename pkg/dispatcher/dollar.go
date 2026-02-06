@@ -21,6 +21,10 @@ func DispatchDollar(conn gnet.Conn, pkt *protocol.Packet) error {
 		return dispatchClientQuery(conn, pkt)
 	case "CR":
 		return dispatchClientQueryResponse(conn, pkt)
+	case "HO":
+		return dispatchHandOff(conn, pkt)
+	case "HA":
+		return dispatchHandOffAccept(conn, pkt)
 	default:
 		logger.Debug("unhandled dollar packet subtype",
 			zap.String("subtype", pkt.SubType),
@@ -57,4 +61,24 @@ func dispatchClientQueryResponse(conn gnet.Conn, pkt *protocol.Packet) error {
 		return err
 	}
 	return handler.HandleClientQueryResponse(conn, p)
+}
+
+// dispatchHandOff 解析并分发移交包
+func dispatchHandOff(conn gnet.Conn, pkt *protocol.Packet) error {
+	p, err := pdu.HandOffFromTokens(pkt.Tokens)
+	if err != nil {
+		logger.Error("failed to parse HandOff", zap.Error(err))
+		return err
+	}
+	return handler.HandleHandOff(conn, p)
+}
+
+// dispatchHandOffAccept 解析并分发移交接受包
+func dispatchHandOffAccept(conn gnet.Conn, pkt *protocol.Packet) error {
+	p, err := pdu.HandOffAcceptFromTokens(pkt.Tokens)
+	if err != nil {
+		logger.Error("failed to parse HandOffAccept", zap.Error(err))
+		return err
+	}
+	return handler.HandleHandOffAccept(conn, p)
 }

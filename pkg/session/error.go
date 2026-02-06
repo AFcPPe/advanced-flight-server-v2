@@ -11,6 +11,11 @@ import (
 // SendErrorAndClose 发送错误消息给客户端并断开连接
 // 确保消息发送后再关闭连接
 func SendErrorAndClose(conn gnet.Conn, to string, errorCode pdu.NetworkError, message string) error {
+	// 标记会话为正在关闭，后续包将被静默丢弃
+	if sess := GetManager().GetSession(conn); sess != nil {
+		sess.Closing = true
+	}
+
 	errPdu := pdu.NewServerError("SERVER", to, errorCode, "", message)
 	data := []byte(pdu.Serialize(errPdu.GetHeader(), errPdu.ToTokens()))
 

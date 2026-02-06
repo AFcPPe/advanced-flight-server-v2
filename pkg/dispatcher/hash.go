@@ -21,6 +21,10 @@ func DispatchHash(conn gnet.Conn, pkt *protocol.Packet) error {
 		return dispatchControllerInfo(conn, pkt)
 	case "SB":
 		return dispatchPlaneInfo(conn, pkt)
+	case "DP":
+		return dispatchDeletePilot(conn, pkt)
+	case "DA":
+		return dispatchDeleteATC(conn, pkt)
 	default:
 		logger.Debug("unhandled hash packet subtype",
 			zap.String("subtype", pkt.SubType),
@@ -67,4 +71,24 @@ func dispatchPlaneInfo(conn gnet.Conn, pkt *protocol.Packet) error {
 		return err
 	}
 	return handler.HandlePlaneInfo(conn, p)
+}
+
+// dispatchDeletePilot 解析并分发飞行员退出包
+func dispatchDeletePilot(conn gnet.Conn, pkt *protocol.Packet) error {
+	p, err := pdu.DeletePilotFromTokens(pkt.Tokens)
+	if err != nil {
+		logger.Error("failed to parse DeletePilot", zap.Error(err))
+		return err
+	}
+	return handler.HandleDeletePilot(conn, p)
+}
+
+// dispatchDeleteATC 解析并分发管制员退出包
+func dispatchDeleteATC(conn gnet.Conn, pkt *protocol.Packet) error {
+	p, err := pdu.DeleteATCFromTokens(pkt.Tokens)
+	if err != nil {
+		logger.Error("failed to parse DeleteATC", zap.Error(err))
+		return err
+	}
+	return handler.HandleDeleteATC(conn, p)
 }
