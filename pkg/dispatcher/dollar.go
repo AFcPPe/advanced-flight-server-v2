@@ -25,6 +25,8 @@ func DispatchDollar(conn gnet.Conn, pkt *protocol.Packet) error {
 		return dispatchHandOff(conn, pkt)
 	case "HA":
 		return dispatchHandOffAccept(conn, pkt)
+	case "AM":
+		return dispatchTagModify(conn, pkt)
 	default:
 		logger.Debug("unhandled dollar packet subtype",
 			zap.String("subtype", pkt.SubType),
@@ -81,4 +83,14 @@ func dispatchHandOffAccept(conn gnet.Conn, pkt *protocol.Packet) error {
 		return err
 	}
 	return handler.HandleHandOffAccept(conn, p)
+}
+
+// dispatchTagModify 解析并分发ATC修改飞行计划包
+func dispatchTagModify(conn gnet.Conn, pkt *protocol.Packet) error {
+	p, err := pdu.TagModifyFromTokens(pkt.Tokens)
+	if err != nil {
+		logger.Error("failed to parse TagModify", zap.Error(err))
+		return err
+	}
+	return handler.HandleTagModify(conn, p)
 }

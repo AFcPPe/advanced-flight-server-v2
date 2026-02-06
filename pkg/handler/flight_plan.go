@@ -34,6 +34,27 @@ func HandleFlightPlan(conn gnet.Conn, p *pdu.FlightPlan) error {
 		return err
 	}
 
+	// 检查飞行计划是否被ATC锁定
+	locked, currentFP := mgr.GetFlightPlanLocked(conn)
+	if locked && currentFP != nil {
+		// 锁定状态下，只有DEP或ARR不同才允许提交
+		if p.Dep == currentFP.Dep && p.Dest == currentFP.Dest {
+			logger.Warn("FlightPlan rejected: plan is locked by ATC, DEP and ARR unchanged",
+				zap.String("callsign", p.Callsign),
+				zap.String("dep", p.Dep),
+				zap.String("dest", p.Dest),
+			)
+			return nil
+		}
+		logger.Info("FlightPlan accepted: DEP or ARR changed, unlocking",
+			zap.String("callsign", p.Callsign),
+			zap.String("old_dep", currentFP.Dep),
+			zap.String("new_dep", p.Dep),
+			zap.String("old_dest", currentFP.Dest),
+			zap.String("new_dest", p.Dest),
+		)
+	}
+
 	// 存储飞行计划到Session
 	fpData := session.NewFlightPlanData(p)
 	mgr.UpdateFlightPlan(conn, fpData)

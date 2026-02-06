@@ -49,6 +49,7 @@ type Session struct {
 	Heading          float64
 	Bank             float64
 	FlightPlan       *FlightPlanData // 飞行计划
+	FlightPlanLocked bool            // 飞行计划是否被ATC锁定（被TagModify修改后锁定）
 
 	// ATC特有字段
 	Frequencies []string
@@ -119,5 +120,26 @@ func NewFlightPlanData(fp *pdu.FlightPlan) *FlightPlanData {
 		AlterDest:     fp.AlterDest,
 		Remark:        fp.Remark,
 		Route:         fp.Route,
+	}
+}
+
+// NewFlightPlanDataFromTagModify 从TagModify PDU创建FlightPlanData
+func NewFlightPlanDataFromTagModify(tm *pdu.TagModify) *FlightPlanData {
+	return &FlightPlanData{
+		FlightRules:   tm.FlightRules,
+		Type:          tm.Type,
+		TAS:           tm.TAS,
+		Dep:           tm.Dep,
+		DepTime:       tm.DepTime,
+		ActualDepTime: tm.ActualDepTime,
+		CruiseAlt:     tm.CruiseAlt,
+		Dest:          tm.Dest,
+		EnrouteHour:   tm.EnrouteHour,
+		EnrouteMin:    tm.EnrouteMin,
+		FobHour:       tm.FobHour,
+		FobMin:        tm.FobMin,
+		AlterDest:     tm.AlterDest,
+		Remark:        tm.Remark,
+		Route:         tm.Route,
 	}
 }

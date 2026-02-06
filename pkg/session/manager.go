@@ -179,14 +179,44 @@ func (m *Manager) UpdateATCPosition(conn gnet.Conn, lat, lon float64, frequencie
 	}
 }
 
-// UpdateFlightPlan 更新Pilot的飞行计划
+// UpdateFlightPlan 更新Pilot的飞行计划（同时解除锁定）
 func (m *Manager) UpdateFlightPlan(conn gnet.Conn, fp *FlightPlanData) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	if session, exists := m.connToSession[conn]; exists {
 		session.FlightPlan = fp
+		session.FlightPlanLocked = false
 	}
+}
+
+// UpdateFlightPlanByCallsign 通过callsign更新Pilot的飞行计划并锁定
+func (m *Manager) UpdateFlightPlanByCallsign(callsign string, fp *FlightPlanData) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	conn, exists := m.callsignToConn[callsign]
+	if !exists {
+		return false
+	}
+	session, exists := m.connToSession[conn]
+	if !exists {
+		return false
+	}
+	session.FlightPlan = fp
+	session.FlightPlanLocked = true
+	return true
+}
+
+// GetFlightPlanLocked 获取指定连接的飞行计划锁定状态和当前飞行计划
+func (m *Manager) GetFlightPlanLocked(conn gnet.Conn) (locked bool, fp *FlightPlanData) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if session, exists := m.connToSession[conn]; exists {
+		return session.FlightPlanLocked, session.FlightPlan
+	}
+	return false, nil
 }
 
 // UpdateLastActivity 更新连接的最后活动时间
