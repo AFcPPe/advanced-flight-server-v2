@@ -8,6 +8,11 @@ import (
 	"github.com/panjf2000/gnet/v2"
 )
 
+// PendingPacket 认证期间缓存的待处理包（原始字节）
+type PendingPacket struct {
+	RawData []byte
+}
+
 // ConnectionType 连接类型
 type ConnectionType int
 
@@ -26,15 +31,18 @@ const (
 type Session struct {
 	Conn              gnet.Conn
 	Callsign          string
-	Cid               string         // 用户CID
-	RealName          string         // 用户真实姓名
-	Buffer            []byte         // 用于处理粘包的缓存
-	Authenticated     bool           // 是否已通过$ID验证（首包必须是$ID）
-	AuthenticatedTime time.Time      // $ID认证完成的时间
-	Closing           bool           // 是否正在关闭连接（发送错误后等待断开）
-	ConnType          ConnectionType // 连接类型：Pilot或ATC
-	LastActivity      time.Time      // 最后一次收到数据的时间
-	LogonTime         time.Time      // 连接建立的时间
+	Cid               string           // 用户CID
+	RealName          string           // 用户真实姓名
+	Buffer            []byte           // 用于处理粘包的缓存
+	Authenticated     bool             // 是否已通过$ID验证（首包必须是$ID）
+	AuthenticatedTime time.Time        // $ID认证完成的时间
+	Authenticating    bool             // 是否正在进行异步登录认证（DB查询中）
+	PendingPackets    []*PendingPacket // 认证期间缓存的待处理包
+	ReplayFunc        func()           // 认证完成后重放缓存包的回调函数
+	Closing           bool             // 是否正在关闭连接（发送错误后等待断开）
+	ConnType          ConnectionType   // 连接类型：Pilot或ATC
+	LastActivity      time.Time        // 最后一次收到数据的时间
+	LogonTime         time.Time        // 连接建立的时间
 
 	// 位置信息（Pilot和ATC共用）
 	Lat             float64
@@ -60,6 +68,17 @@ type Session struct {
 	Facility      int
 	TextAtis      []string  // ATIS文本信息
 	LastAtisQuery time.Time // 上次向该ATC询问ATIS的时间
+}
+
+// FinishAuthenticating 完成异步认证，清除认证状态并重放缓存包
+// loginSuccess: 登录是否成功，只有成功时才重放缓存包
+func (s *Session) FinishAuthenticating(loginSuccess bool) {
+	s.Authenticating = false
+	if loginSuccess && s.ReplayFunc != nil {
+		s.ReplayFunc()
+	}
+	s.PendingPackets = nil
+	s.ReplayFunc = nil
 }
 
 // AppendBuffer 追加数据到缓存，如果超过限制则丢弃全部缓存

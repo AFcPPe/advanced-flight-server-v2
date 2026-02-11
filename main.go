@@ -22,13 +22,14 @@ func main() {
 	// 用配置初始化 logger
 	logCfg := config.GetLogger()
 	logger.Init(&logger.Config{
-		Level:      logCfg.Level,
-		Filename:   logCfg.Filename,
-		MaxSize:    logCfg.MaxSize,
-		MaxBackups: logCfg.MaxBackups,
-		MaxAge:     logCfg.MaxAge,
-		Compress:   logCfg.Compress,
-		Console:    logCfg.Console,
+		Level:        logCfg.Level,
+		Filename:     logCfg.Filename,
+		MaxSize:      logCfg.MaxSize,
+		MaxBackups:   logCfg.MaxBackups,
+		MaxAge:       logCfg.MaxAge,
+		Compress:     logCfg.Compress,
+		Console:      logCfg.Console,
+		RotateByDate: logCfg.RotateByDate,
 	})
 	defer logger.Sync()
 

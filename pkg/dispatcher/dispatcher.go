@@ -32,6 +32,26 @@ func Dispatch(conn gnet.Conn, pkt *protocol.Packet) error {
 		return nil
 	}
 
+	// 正在进行异步登录认证，缓存后续包等认证完成后重放
+	if sess.Authenticating {
+		sess.PendingPackets = append(sess.PendingPackets, &session.PendingPacket{
+			RawData: append([]byte(nil), pkt.RawData...),
+		})
+		// 设置重放回调（仅首次设置）
+		if sess.ReplayFunc == nil {
+			sess.ReplayFunc = func() {
+				ReplayPendingPackets(conn, sess.PendingPackets)
+				sess.PendingPackets = nil
+			}
+		}
+		logger.Debug("buffered packet during authentication",
+			zap.String("type", pkt.GetTypeName()),
+			zap.String("remote", conn.RemoteAddr().String()),
+			zap.Int("pending_count", len(sess.PendingPackets)),
+		)
+		return nil
+	}
+
 	// 如果未认证，首包必须是$ID
 	if !sess.Authenticated {
 		if pkt.Type != protocol.PacketTypeDollar || pkt.SubType != "ID" {
@@ -57,6 +77,20 @@ func Dispatch(conn gnet.Conn, pkt *protocol.Packet) error {
 			zap.ByteString("raw", pkt.RawData),
 		)
 		return nil
+	}
+}
+
+// ReplayPendingPackets 重放认证期间缓存的包
+// 在异步认证完成后由goroutine调用
+func ReplayPendingPackets(conn gnet.Conn, packets []*session.PendingPacket) {
+	for _, pending := range packets {
+		pkt := protocol.ParsePacket(pending.RawData)
+		if err := Dispatch(conn, pkt); err != nil {
+			logger.Error("failed to replay pending packet",
+				zap.Error(err),
+				zap.String("type", pkt.GetTypeName()),
+			)
+		}
 	}
 }
 

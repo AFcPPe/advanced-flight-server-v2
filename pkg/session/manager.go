@@ -264,6 +264,10 @@ func (m *Manager) GetAuthTimeoutConns(timeout time.Duration) []gnet.Conn {
 		if sess.Closing {
 			continue
 		}
+		// 正在进行异步认证的连接不需要踢
+		if sess.Authenticating {
+			continue
+		}
 
 		if !sess.Authenticated {
 			// 未完成$ID认证，检查连接时间

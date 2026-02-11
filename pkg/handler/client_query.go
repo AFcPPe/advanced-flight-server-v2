@@ -12,7 +12,7 @@ import (
 )
 
 // ServerCaps 服务器支持的能力
-var ServerCaps = []string{"ATCINFO=1", "ICAOEQ=1", "FASTPOS=1"}
+var ServerCaps = []string{"ATCINFO=1", "ICAOEQ=1"}
 
 // HandleClientQuery 处理客户端查询包（$CQ）
 func HandleClientQuery(conn gnet.Conn, p *pdu.ClientQuery) error {

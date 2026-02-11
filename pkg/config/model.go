@@ -32,13 +32,14 @@ type AppConfig struct {
 
 // LoggerConfig 日志配置
 type LoggerConfig struct {
-	Level      string `mapstructure:"level"`       // 日志级别: debug, info, warn, error
-	Filename   string `mapstructure:"filename"`    // 日志文件路径
-	MaxSize    int    `mapstructure:"max_size"`    // 单个日志文件最大大小(MB)
-	MaxBackups int    `mapstructure:"max_backups"` // 保留的旧日志文件最大数量
-	MaxAge     int    `mapstructure:"max_age"`     // 保留的旧日志文件最大天数
-	Compress   bool   `mapstructure:"compress"`    // 是否压缩旧日志文件
-	Console    bool   `mapstructure:"console"`     // 是否同时输出到控制台
+	Level        string `mapstructure:"level"`          // 日志级别: debug, info, warn, error
+	Filename     string `mapstructure:"filename"`       // 日志文件路径
+	MaxSize      int    `mapstructure:"max_size"`       // 单个日志文件最大大小(MB)
+	MaxBackups   int    `mapstructure:"max_backups"`    // 保留的旧日志文件最大数量
+	MaxAge       int    `mapstructure:"max_age"`        // 保留的旧日志文件最大天数
+	Compress     bool   `mapstructure:"compress"`       // 是否压缩旧日志文件
+	Console      bool   `mapstructure:"console"`        // 是否同时输出到控制台
+	RotateByDate bool   `mapstructure:"rotate_by_date"` // 是否按日期自动分文件
 }
 
 // ServerConfig 服务器配置
@@ -111,13 +112,14 @@ func DefaultConfig() *Config {
 			Env:     "dev",
 		},
 		Logger: LoggerConfig{
-			Level:      "info",
-			Filename:   "logs/app.log",
-			MaxSize:    100,
-			MaxBackups: 3,
-			MaxAge:     7,
-			Compress:   true,
-			Console:    true,
+			Level:        "info",
+			Filename:     "logs/app.log",
+			MaxSize:      100,
+			MaxBackups:   3,
+			MaxAge:       7,
+			Compress:     true,
+			Console:      true,
+			RotateByDate: true,
 		},
 		Server: ServerConfig{
 			Host:        "0.0.0.0",

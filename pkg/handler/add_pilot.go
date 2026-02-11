@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"strings"
+	"time"
 
 	"advanced-flight-server/pkg/config"
 	"advanced-flight-server/pkg/logger"
@@ -36,56 +37,86 @@ func HandleAddPilot(conn gnet.Conn, p *pdu.AddPilot) error {
 		return session.SendErrorAndClose(conn, p.Callsign, pdu.NetworkErrorCallsignInvalid, "callsign too long (max 12 characters)")
 	}
 
-	// 认证验证（密码 + rating）
-	authService := service.NewAuthService()
-	result := authService.ValidateLoginWithRating(context.Background(), p.Cid, p.Password, p.Rating)
-	if !result.Success {
-		logger.Warn("Pilot login failed",
-			zap.String("cid", p.Cid),
-			zap.String("callsign", p.Callsign),
-			zap.Error(result.Error),
-		)
-		return session.SendErrorAndClose(conn, p.Callsign, pdu.NetworkErrorInvalidLogon, result.Error.Error())
-	}
-
-	logger.Info("Pilot login success",
-		zap.String("cid", p.Cid),
-		zap.String("callsign", p.Callsign),
-		zap.Int("level", int(result.Level)),
-	)
-
-	// 原子地设置callsign，避免并发竞态条件
+	// 标记会话正在进行异步认证，防止被auth timeout踢掉
 	mgr := session.GetManager()
-	success, callsignInUse := mgr.SetCallsignIfNotExist(conn, p.Callsign)
-	if !success {
-		if callsignInUse {
-			logger.Warn("Pilot callsign already in use",
-				zap.String("callsign", p.Callsign),
-				zap.String("cid", p.Cid),
-			)
-			return session.SendErrorAndClose(conn, p.Callsign, pdu.NetworkErrorCallsignInUse, "callsign already in use")
-		}
-		logger.Warn("Pilot session not found",
-			zap.String("callsign", p.Callsign),
-			zap.String("cid", p.Cid),
-		)
-		return session.SendErrorAndClose(conn, p.Callsign, pdu.NetworkErrorInvalidLogon, "session not found")
+	if sess := mgr.GetSession(conn); sess != nil {
+		sess.Authenticating = true
 	}
 
-	// 设置连接类型为Pilot，并保存CID和登录等级
-	mgr.SetConnType(conn, session.ConnectionTypePilot)
-	mgr.SetCid(conn, p.Cid)
-	mgr.SetRating(conn, int(p.Rating))
-	mgr.SetRealName(conn, p.RealName)
+	// 将阻塞的DB认证移到goroutine中，避免阻塞gnet事件循环
+	go func() {
+		sess := mgr.GetSession(conn)
 
-	// 发送 motd
-	if motd := config.GetServer().Motd; motd != "" {
-		for _, line := range strings.Split(motd, "\n") {
-			if line = strings.TrimSpace(line); line != "" {
-				_ = session.Send(conn, pdu.NewPDUTextMessage("SERVER", p.Callsign, line))
+		// 加超时保护，防止DB无限阻塞
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		authService := service.NewAuthService()
+		result := authService.ValidateLoginWithRating(ctx, p.Cid, p.Password, p.Rating)
+		if !result.Success {
+			logger.Warn("Pilot login failed",
+				zap.String("cid", p.Cid),
+				zap.String("callsign", p.Callsign),
+				zap.Error(result.Error),
+			)
+			if sess != nil {
+				sess.FinishAuthenticating(false)
+			}
+			_ = session.SendErrorAndClose(conn, p.Callsign, pdu.NetworkErrorInvalidLogon, result.Error.Error())
+			return
+		}
+
+		logger.Info("Pilot login success",
+			zap.String("cid", p.Cid),
+			zap.String("callsign", p.Callsign),
+			zap.Int("level", int(result.Level)),
+		)
+
+		// 原子地设置callsign，避免并发竞态条件
+		success, callsignInUse := mgr.SetCallsignIfNotExist(conn, p.Callsign)
+		if !success {
+			if callsignInUse {
+				logger.Warn("Pilot callsign already in use",
+					zap.String("callsign", p.Callsign),
+					zap.String("cid", p.Cid),
+				)
+				if sess != nil {
+					sess.FinishAuthenticating(false)
+				}
+				_ = session.SendErrorAndClose(conn, p.Callsign, pdu.NetworkErrorCallsignInUse, "callsign already in use")
+			} else {
+				logger.Warn("Pilot session not found",
+					zap.String("callsign", p.Callsign),
+					zap.String("cid", p.Cid),
+				)
+				if sess != nil {
+					sess.FinishAuthenticating(false)
+				}
+				_ = session.SendErrorAndClose(conn, p.Callsign, pdu.NetworkErrorInvalidLogon, "session not found")
+			}
+			return
+		}
+
+		// 设置连接类型为Pilot，并保存CID和登录等级
+		mgr.SetConnType(conn, session.ConnectionTypePilot)
+		mgr.SetCid(conn, p.Cid)
+		mgr.SetRating(conn, int(p.Rating))
+		mgr.SetRealName(conn, p.RealName)
+
+		// 发送 motd
+		if motd := config.GetServer().Motd; motd != "" {
+			for _, line := range strings.Split(motd, "\n") {
+				if line = strings.TrimSpace(line); line != "" {
+					_ = session.Send(conn, pdu.NewPDUTextMessage("SERVER", p.Callsign, line))
+				}
 			}
 		}
-	}
+
+		// 认证完成，重放缓存的包
+		if sess != nil {
+			sess.FinishAuthenticating(true)
+		}
+	}()
 
 	return nil
 }
