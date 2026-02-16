@@ -37,6 +37,9 @@ func (s *FlightServer) OnShutdown(eng gnet.Engine) {
 
 // OnOpen 新连接建立时回调
 func (s *FlightServer) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
+	logger.Debug("OnOpen called",
+		zap.String("remote", c.RemoteAddr().String()),
+	)
 	s.sessionMgr.AddConn(c)
 	logger.Info("new connection",
 		zap.String("remote", c.RemoteAddr().String()),
@@ -50,21 +53,40 @@ func (s *FlightServer) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 
 // OnClose 连接关闭时回调
 func (s *FlightServer) OnClose(c gnet.Conn, err error) (action gnet.Action) {
+	logger.Debug("OnClose called",
+		zap.String("remote", c.RemoteAddr().String()),
+		zap.Error(err),
+	)
+
 	// 在移除会话前，获取断链用户的信息
 	sess := s.sessionMgr.GetSessionByConn(c)
 	var callsign string
 	var connType session.ConnectionType
 	var cid string
+	var authenticating bool
 	if sess != nil {
 		callsign = sess.Callsign
 		connType = sess.ConnType
 		cid = sess.Cid
+		authenticating = sess.Authenticating
 	}
+
+	logger.Debug("OnClose session info before removal",
+		zap.String("remote", c.RemoteAddr().String()),
+		zap.String("callsign", callsign),
+		zap.String("cid", cid),
+		zap.Bool("authenticating", authenticating),
+		zap.Bool("session_exists", sess != nil),
+	)
 
 	s.sessionMgr.RemoveConn(c)
 
 	// 如果断链用户有callsign，广播 #DP 或 #DA 通知其他用户
 	if callsign != "" {
+		logger.Debug("broadcasting disconnect notification",
+			zap.String("callsign", callsign),
+			zap.Int("connType", int(connType)),
+		)
 		switch connType {
 		case session.ConnectionTypePilot:
 			dp := pdu.NewPDUDeletePilot(callsign, cid)
@@ -98,36 +120,41 @@ func (s *FlightServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 		return gnet.None
 	}
 
+	logger.Debug("OnTraffic received data",
+		zap.String("remote", c.RemoteAddr().String()),
+		zap.Int("data_len", len(data)),
+	)
+
 	// 更新最后活动时间
 	s.sessionMgr.UpdateLastActivity(c)
 
 	// 获取会话
-	session := s.sessionMgr.GetSessionByConn(c)
-	if session == nil {
+	sess := s.sessionMgr.GetSessionByConn(c)
+	if sess == nil {
 		logger.Error("session not found for connection", zap.String("remote", c.RemoteAddr().String()))
 		return gnet.Close
 	}
 
 	// 追加数据到缓存，处理粘包
-	if !session.AppendBuffer(data) {
+	if !sess.AppendBuffer(data) {
 		logger.Warn("buffer overflow, discarded",
 			zap.String("remote", c.RemoteAddr().String()),
-			zap.String("callsign", session.Callsign),
+			zap.String("callsign", sess.Callsign),
 		)
 		return gnet.None
 	}
 
 	// 按\r\n分割处理
 	for {
-		idx := bytes.Index(session.Buffer, []byte("\r\n"))
+		idx := bytes.Index(sess.Buffer, []byte("\r\n"))
 		if idx == -1 {
 			// 没有完整的包，等待更多数据
 			break
 		}
 
 		// 提取一个完整的包
-		line := session.Buffer[:idx]
-		session.Buffer = session.Buffer[idx+2:]
+		line := sess.Buffer[:idx]
+		sess.Buffer = sess.Buffer[idx+2:]
 
 		if len(line) == 0 {
 			continue
@@ -135,10 +162,17 @@ func (s *FlightServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 
 		// 解析并分发包
 		packet := protocol.ParsePacket(line)
+		logger.Debug("dispatching packet from OnTraffic",
+			zap.String("remote", c.RemoteAddr().String()),
+			zap.String("callsign", sess.Callsign),
+			zap.String("type", packet.GetTypeName()),
+		)
 		if err := dispatcher.Dispatch(c, packet); err != nil {
 			logger.Error("failed to handle packet",
 				zap.Error(err),
 				zap.String("type", packet.GetTypeName()),
+				zap.String("remote", c.RemoteAddr().String()),
+				zap.String("callsign", sess.Callsign),
 			)
 			// 如果首包不是$ID，断开连接
 			if err == errs.ErrNotAuthenticated {
@@ -152,8 +186,16 @@ func (s *FlightServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 
 // OnTick 定时检查空闲连接并断开
 func (s *FlightServer) OnTick() (delay time.Duration, action gnet.Action) {
+	logger.Debug("OnTick called",
+		zap.Int("total_connections", s.sessionMgr.Count()),
+		zap.Int("total_callsigns", s.sessionMgr.CallsignCount()),
+	)
+
 	// 检查空闲超时
 	idleConns := s.sessionMgr.GetIdleConns(IdleTimeout)
+	if len(idleConns) > 0 {
+		logger.Debug("found idle connections", zap.Int("count", len(idleConns)))
+	}
 	for _, c := range idleConns {
 		callsign := s.sessionMgr.GetCallsignByConn(c)
 		logger.Warn("closing idle connection",
@@ -167,6 +209,9 @@ func (s *FlightServer) OnTick() (delay time.Duration, action gnet.Action) {
 	authTimeout := time.Duration(config.GetServer().AuthTimeout) * time.Second
 	if authTimeout > 0 {
 		authTimeoutConns := s.sessionMgr.GetAuthTimeoutConns(authTimeout)
+		if len(authTimeoutConns) > 0 {
+			logger.Debug("found auth timeout connections", zap.Int("count", len(authTimeoutConns)))
+		}
 		for _, c := range authTimeoutConns {
 			logger.Warn("closing connection due to auth/login timeout",
 				zap.String("remote", c.RemoteAddr().String()),
@@ -182,10 +227,14 @@ func (s *FlightServer) OnTick() (delay time.Duration, action gnet.Action) {
 		if sess.IsLoggedIn() && sess.ConnType == session.ConnectionTypeATC {
 			if now.Sub(sess.LastAtisQuery) >= 30*time.Second {
 				sess.LastAtisQuery = now
+				logger.Debug("querying ATIS from ATC",
+					zap.String("callsign", sess.Callsign),
+				)
 				_ = session.Send(sess.Conn, pdu.NewPDUClientQuery("SERVER", sess.Callsign, "ATIS", nil))
 			}
 		}
 	}
 
+	logger.Debug("OnTick completed")
 	return TickInterval, gnet.None
 }

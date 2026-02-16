@@ -83,15 +83,28 @@ func Dispatch(conn gnet.Conn, pkt *protocol.Packet) error {
 // ReplayPendingPackets 重放认证期间缓存的包
 // 在异步认证完成后由goroutine调用
 func ReplayPendingPackets(conn gnet.Conn, packets []*session.PendingPacket) {
-	for _, pending := range packets {
+	logger.Debug("ReplayPendingPackets starting",
+		zap.String("remote", conn.RemoteAddr().String()),
+		zap.Int("packet_count", len(packets)),
+	)
+	for i, pending := range packets {
 		pkt := protocol.ParsePacket(pending.RawData)
+		logger.Debug("replaying pending packet",
+			zap.Int("index", i),
+			zap.String("type", pkt.GetTypeName()),
+			zap.String("remote", conn.RemoteAddr().String()),
+		)
 		if err := Dispatch(conn, pkt); err != nil {
 			logger.Error("failed to replay pending packet",
 				zap.Error(err),
 				zap.String("type", pkt.GetTypeName()),
+				zap.String("remote", conn.RemoteAddr().String()),
 			)
 		}
 	}
+	logger.Debug("ReplayPendingPackets completed",
+		zap.String("remote", conn.RemoteAddr().String()),
+	)
 }
 
 // dispatchATCPosition 解析并分发ATC位置包
