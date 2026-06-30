@@ -5,10 +5,20 @@ import (
 	"advanced-flight-server/pkg/logger"
 	"advanced-flight-server/pkg/protocol"
 	"advanced-flight-server/pkg/protocol/pdu"
+	"advanced-flight-server/pkg/session"
 
 	"github.com/panjf2000/gnet/v2"
 	"go.uber.org/zap"
 )
+
+// closeOnParseError 解析失败时关闭连接，并标记会话为正在关闭，
+// 使同一批粘包里后续的包被 Dispatch 丢弃，避免在关闭中的连接上继续处理。
+func closeOnParseError(conn gnet.Conn) {
+	if sess := session.GetManager().GetSession(conn); sess != nil {
+		sess.Closing = true
+	}
+	_ = conn.Close()
+}
 
 // DispatchHash 分发 # 开头的包
 func DispatchHash(conn gnet.Conn, pkt *protocol.Packet) error {
@@ -40,6 +50,7 @@ func dispatchAddPilot(conn gnet.Conn, pkt *protocol.Packet) error {
 	p, err := pdu.AddPilotFromTokens(pkt.Tokens)
 	if err != nil {
 		logger.Error("failed to parse AddPilot", zap.Error(err))
+		closeOnParseError(conn)
 		return err
 	}
 	return handler.HandleAddPilot(conn, p)
@@ -50,6 +61,7 @@ func dispatchAddATC(conn gnet.Conn, pkt *protocol.Packet) error {
 	p, err := pdu.AddATCFromTokens(pkt.Tokens)
 	if err != nil {
 		logger.Error("failed to parse AddATC", zap.Error(err))
+		closeOnParseError(conn)
 		return err
 	}
 	return handler.HandleAddATC(conn, p)

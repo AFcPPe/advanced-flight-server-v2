@@ -7,7 +7,15 @@ type Config struct {
 	Server           ServerConfig                     `mapstructure:"server"`
 	Metar            MetarConfig                      `mapstructure:"metar"`
 	Redis            RedisConfig                      `mapstructure:"redis"`
+	IPBan            IPBanConfig                      `mapstructure:"ip_ban"`
 	DatabaseAccounts map[string]DatabaseAccountConfig `mapstructure:"database_accounts"`
+}
+
+// IPBanConfig IP封禁配置
+type IPBanConfig struct {
+	Enabled  bool   `mapstructure:"enabled"`  // 是否启用IP封禁
+	File     string `mapstructure:"file"`     // 封禁规则JSON文件路径
+	Interval int    `mapstructure:"interval"` // 重新加载封禁文件的间隔（分钟）
 }
 
 // RedisConfig Redis配置
@@ -135,6 +143,11 @@ func DefaultConfig() *Config {
 			Addr:     "127.0.0.1:6379",
 			Password: "",
 			DB:       0,
+		},
+		IPBan: IPBanConfig{
+			Enabled:  true,
+			File:     "ip_ban.json",
+			Interval: 1,
 		},
 		DatabaseAccounts: map[string]DatabaseAccountConfig{
 			"account": {

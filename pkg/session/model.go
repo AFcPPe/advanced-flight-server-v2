@@ -40,6 +40,7 @@ type Session struct {
 	PendingPackets    []*PendingPacket // 认证期间缓存的待处理包
 	ReplayFunc        func()           // 认证完成后重放缓存包的回调函数
 	Closing           bool             // 是否正在关闭连接（发送错误后等待断开）
+	Silenced          bool             // 是否被IP封禁静默处理（不回包、丢弃输入、不触发超时）
 	ConnType          ConnectionType   // 连接类型：Pilot或ATC
 	LastActivity      time.Time        // 最后一次收到数据的时间
 	LogonTime         time.Time        // 连接建立的时间

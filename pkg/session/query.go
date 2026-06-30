@@ -68,6 +68,21 @@ func (m *Manager) GetLoggedInSessions() []*Session {
 	return sessions
 }
 
+// ForEachLoggedInSession 在持有读锁的前提下遍历所有已登录会话，
+// 对每个会话调用 fn。fn 必须在回调内完成对会话字段的读取/拷贝，
+// 不得保存 *Session 指针到锁外使用，否则仍会产生数据竞争。
+// 用于快照采集等需要一致性读取会话字段的场景。
+func (m *Manager) ForEachLoggedInSession(fn func(s *Session)) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	for _, conn := range m.callsignToConn {
+		if s, exists := m.connToSession[conn]; exists && s.IsLoggedIn() {
+			fn(s)
+		}
+	}
+}
+
 // Count 返回当前连接数
 func (m *Manager) Count() int {
 	m.mu.RLock()

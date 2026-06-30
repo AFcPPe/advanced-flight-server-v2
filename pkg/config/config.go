@@ -166,6 +166,11 @@ func GetRedis() *RedisConfig {
 	return &Get().Redis
 }
 
+// GetIPBan 获取IP封禁配置
+func GetIPBan() *IPBanConfig {
+	return &Get().IPBan
+}
+
 // Reload 重新加载配置
 func Reload() error {
 	if err := viper.ReadInConfig(); err != nil {

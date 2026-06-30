@@ -3,6 +3,7 @@ package snapshot
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -51,13 +52,13 @@ func GetPublisher() *Publisher {
 
 // Publish 采集当前所有在线用户信息，按类型分类后推送到Redis
 func (p *Publisher) Publish() {
-	sessions := p.sessionMgr.GetLoggedInSessions()
-
 	var pilots []*Pilot
 	var atcs []*ATC
 	var atiss []*ATIS
 
-	for _, s := range sessions {
+	// 在持有会话管理器读锁的前提下完成采集与拷贝，
+	// 避免与 event-loop/auth goroutine 并发读写 Session 字段产生数据竞争。
+	p.sessionMgr.ForEachLoggedInSession(func(s *session.Session) {
 		switch s.ConnType {
 		case session.ConnectionTypePilot:
 			pilots = append(pilots, buildPilot(s))
@@ -68,7 +69,7 @@ func (p *Publisher) Publish() {
 				atcs = append(atcs, buildATC(s))
 			}
 		}
-	}
+	})
 
 	snap := &Snapshot{
 		Timestamp: time.Now().Unix(),
@@ -142,7 +143,7 @@ func buildATC(s *session.Session) *ATC {
 		Facility:        s.Facility,
 		Rating:          s.Rating,
 		VisibilityRange: s.VisibilityRange,
-		TextAtis:        s.TextAtis,
+		TextAtis:        slices.Clone(s.TextAtis),
 		LogonTime:       s.LogonTime.UTC().Format(time.RFC3339),
 	}
 }
@@ -159,7 +160,7 @@ func buildATIS(s *session.Session) *ATIS {
 		Facility:        s.Facility,
 		Rating:          s.Rating,
 		VisibilityRange: s.VisibilityRange,
-		TextAtis:        s.TextAtis,
+		TextAtis:        slices.Clone(s.TextAtis),
 		LogonTime:       s.LogonTime.UTC().Format(time.RFC3339),
 	}
 }

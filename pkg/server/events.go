@@ -7,6 +7,7 @@ import (
 	"advanced-flight-server/pkg/config"
 	"advanced-flight-server/pkg/dispatcher"
 	"advanced-flight-server/pkg/errs"
+	"advanced-flight-server/pkg/ipban"
 	"advanced-flight-server/pkg/logger"
 	"advanced-flight-server/pkg/protocol"
 	"advanced-flight-server/pkg/protocol/pdu"
@@ -37,12 +38,32 @@ func (s *FlightServer) OnShutdown(eng gnet.Engine) {
 
 // OnOpen 新连接建立时回调
 func (s *FlightServer) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
+	remote := c.RemoteAddr().String()
 	logger.Debug("OnOpen called",
-		zap.String("remote", c.RemoteAddr().String()),
+		zap.String("remote", remote),
 	)
+
+	// IP封禁检查
+	if config.GetIPBan().Enabled {
+		if banAction, hit := ipban.GetStore().MatchAddr(remote); hit {
+			switch banAction {
+			case ipban.ActionReject:
+				// 直接拒绝：连接建立后立即断开，不创建会话
+				logger.Info("rejecting banned ip", zap.String("remote", remote))
+				return nil, gnet.Close
+			case ipban.ActionSilent:
+				// 静默处理：接受连接但不回任何包，标记会话为静默
+				logger.Info("silencing banned ip", zap.String("remote", remote))
+				s.sessionMgr.AddConn(c)
+				s.sessionMgr.SetSilenced(c)
+				return nil, gnet.None
+			}
+		}
+	}
+
 	s.sessionMgr.AddConn(c)
 	logger.Info("new connection",
-		zap.String("remote", c.RemoteAddr().String()),
+		zap.String("remote", remote),
 		zap.Int("total_connections", s.sessionMgr.Count()),
 	)
 
@@ -109,6 +130,24 @@ func (s *FlightServer) OnClose(c gnet.Conn, err error) (action gnet.Action) {
 
 // OnTraffic 收到数据时回调
 func (s *FlightServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
+	// 兜底恢复：单个包/单条连接的处理 panic 不能掀翻整个 gnet 引擎。
+	// gnet 在 event-loop goroutine panic 后会触发 OnShutdown 并强制关闭所有连接，
+	// 表现为整服闪退。这里捕获 panic、打印真实堆栈，仅关闭出问题的连接。
+	defer func() {
+		if r := recover(); r != nil {
+			var remote string
+			if addr := c.RemoteAddr(); addr != nil {
+				remote = addr.String()
+			}
+			logger.Error("PANIC recovered in OnTraffic",
+				zap.Any("recover", r),
+				zap.String("remote", remote),
+				zap.Stack("stack"),
+			)
+			action = gnet.Close
+		}
+	}()
+
 	// 读取所有可用数据
 	data, err := c.Next(-1)
 	if err != nil {
@@ -117,6 +156,12 @@ func (s *FlightServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	}
 
 	if len(data) == 0 {
+		return gnet.None
+	}
+
+	// 静默连接：丢弃所有输入，不回任何包，伪装服务器崩溃
+	sess := s.sessionMgr.GetSessionByConn(c)
+	if sess != nil && sess.Silenced {
 		return gnet.None
 	}
 
@@ -129,7 +174,6 @@ func (s *FlightServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	s.sessionMgr.UpdateLastActivity(c)
 
 	// 获取会话
-	sess := s.sessionMgr.GetSessionByConn(c)
 	if sess == nil {
 		logger.Error("session not found for connection", zap.String("remote", c.RemoteAddr().String()))
 		return gnet.Close

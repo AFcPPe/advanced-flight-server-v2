@@ -126,6 +126,27 @@ func (m *Manager) SetConnType(conn gnet.Conn, connType ConnectionType) {
 	}
 }
 
+// SetSilenced 标记连接为静默状态（被IP封禁的silent动作命中）
+func (m *Manager) SetSilenced(conn gnet.Conn) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if session, exists := m.connToSession[conn]; exists {
+		session.Silenced = true
+	}
+}
+
+// IsSilenced 判断连接是否处于静默状态
+func (m *Manager) IsSilenced(conn gnet.Conn) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if session, exists := m.connToSession[conn]; exists {
+		return session.Silenced
+	}
+	return false
+}
+
 // GetSession 获取连接对应的Session
 func (m *Manager) GetSession(conn gnet.Conn) *Session {
 	m.mu.RLock()
@@ -239,6 +260,10 @@ func (m *Manager) GetIdleConns(timeout time.Duration) []gnet.Conn {
 	now := time.Now()
 	var idle []gnet.Conn
 	for conn, sess := range m.connToSession {
+		// 静默连接需要一直挂着，伪装服务器崩溃，不主动断开
+		if sess.Silenced {
+			continue
+		}
 		if now.Sub(sess.LastActivity) > timeout {
 			idle = append(idle, conn)
 		}
@@ -256,6 +281,10 @@ func (m *Manager) GetAuthTimeoutConns(timeout time.Duration) []gnet.Conn {
 	now := time.Now()
 	var result []gnet.Conn
 	for conn, sess := range m.connToSession {
+		// 静默连接需要一直挂着，伪装服务器崩溃，不因认证超时断开
+		if sess.Silenced {
+			continue
+		}
 		// 已登录的连接不需要检查
 		if sess.IsLoggedIn() {
 			continue
